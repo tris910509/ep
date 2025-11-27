@@ -1,331 +1,137 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sistem Informasi Pelayanan (Local)</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    body { padding-top: 60px; }
-    .pointer { cursor: pointer; }
-    .thumb { width:48px; height:48px; object-fit:cover; border-radius:6px; }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistem Pelayanan Penjualan</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        body { background:#f5f7fb; }
+        .sidebar {
+            width: 250px; height: 100vh; background: #fff; position: fixed;
+            padding: 20px; border-right: 1px solid #ddd;
+        }
+        .content { margin-left: 270px; padding: 20px; }
+        .card-box {
+            border-radius: 12px; padding: 20px; color: #fff;
+        }
+        .bg-purple { background: #6a5acd; }
+        .bg-orange { background: #ff8c00; }
+        .bg-green { background: #28a745; }
+        .profile-img {
+            width: 120px; height: 120px; border-radius: 50%; object-fit: cover;
+        }
+    </style>
 </head>
+
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="#">Sistem Pelayanan (Local)</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="nav">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link active" data-nav="dashboard" href="#">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" data-nav="users" href="#">Users</a></li>
-        <li class="nav-item"><a class="nav-link" data-nav="suppliers" href="#">Suppliers</a></li>
-        <li class="nav-item"><a class="nav-link" data-nav="categories" href="#">Kategori</a></li>
-        <li class="nav-item"><a class="nav-link" data-nav="items" href="#">Item</a></li>
-        <li class="nav-item"><a class="nav-link" data-nav="products" href="#">Produk</a></li>
-        <li class="nav-item"><a class="nav-link" data-nav="trans" href="#">Transaksi</a></li>
-        <li class="nav-item"><a class="nav-link" data-nav="reports" href="#">Laporan</a></li>
-      </ul>
-      <div class="d-flex">
-        <button class="btn btn-outline-light" id="btnReset">Reset Data</button>
-      </div>
+    <!-- Sidebar Menu -->
+    <div class="sidebar">
+        <h4 class="text-center fw-bold">Lucky Photo</h4>
+        <hr>
+        <ul class="nav flex-column">
+            <li class="nav-item"><a class="nav-link" href="#"><i class="fa fa-home"></i> Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="#"><i class="fa fa-shopping-cart"></i> Point of Sales</a></li>
+            <hr>
+            <small class="text-muted ms-1">MASTER DATA</small>
+            <li class="nav-item"><a class="nav-link" href="#">Manajemen User</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Kategori</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Produk</a></li>
+            <hr>
+            <small class="text-muted ms-1">TRANSAKSI</small>
+            <li class="nav-item"><a class="nav-link" href="#">Data Pemesanan</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Data POS</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Konfirmasi Pembayaran</a></li>
+        </ul>
     </div>
-  </div>
-</nav>
 
-<div class="container">
-  <div id="page-dashboard" class="page">
-    <div class="row">
-      <div class="col-md-8">
-        <h3>Ringkasan</h3>
-        <div class="row g-3">
-          <div class="col-sm-4"><div class="card p-3"><h5 id="count-users">0</h5><small>Users</small></div></div>
-          <div class="col-sm-4"><div class="card p-3"><h5 id="count-products">0</h5><small>Produk</small></div></div>
-          <div class="col-sm-4"><div class="card p-3"><h5 id="count-trans">0</h5><small>Transaksi</small></div></div>
+    <!-- Content -->
+    <div class="content">
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card-box bg-purple">
+                    <h5>Pengguna</h5>
+                    <h2 id="countUsers">0 Akun</h2>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-box bg-orange">
+                    <h5>Pemesanan</h5>
+                    <h2 id="countOrders">0 Data</h2>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-box bg-green">
+                    <h5>Pendapatan</h5>
+                    <h2 id="totalIncome">Rp. 0</h2>
+                </div>
+            </div>
         </div>
 
-        <div class="card mt-3 p-3">
-          <canvas id="chartSales" height="100"></canvas>
+        <!-- Profile -->
+        <div class="card p-4 mb-4 text-center">
+            <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="profile-img mb-3">
+            <h5>Halo! Selamat Datang, <span id="username">admin</span></h5>
         </div>
-      </div>
-      <div class="col-md-4">
-        <h5>Aktivitas Terakhir</h5>
-        <ul class="list-group" id="activity-log"></ul>
-      </div>
+
+        <!-- Table Pembayaran -->
+        <div class="card p-3">
+            <h5>Data Pembayaran</h5>
+            <table class="table table-bordered mt-3">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Pembeli</th>
+                        <th>Total</th>
+                        <th>Tanggal Pesan</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="paymentTable"></tbody>
+            </table>
+        </div>
     </div>
-  </div>
 
-  <!-- Users -->
-  <div id="page-users" class="page" style="display:none">
-    <div class="d-flex justify-content-between align-items-center">
-      <h3>Users</h3>
-      <button class="btn btn-primary" id="btnAddUser">Tambah User</button>
-    </div>
-    <table class="table table-striped mt-3">
-      <thead><tr><th>Photo</th><th>Nama</th><th>NIK</th><th>HP</th><th>Alamat</th><th>Aksi</th></tr></thead>
-      <tbody id="tblUsers"></tbody>
-    </table>
-  </div>
+    <script>
+        // Simulasi data dari localStorage
+        const pembayaran = [
+            {
+                id: 1,
+                pembeli: "Pelanggan",
+                total: 5047000,
+                tanggal: "2021-02-22",
+                status: "Dibayar"
+            }
+        ];
 
-  <!-- Suppliers -->
-  <div id="page-suppliers" class="page" style="display:none">
-    <div class="d-flex justify-content-between align-items-center">
-      <h3>Suppliers</h3>
-      <button class="btn btn-primary" id="btnAddSupplier">Tambah Supplier</button>
-    </div>
-    <table class="table table-striped mt-3">
-      <thead><tr><th>Nama Perusahaan</th><th>HP</th><th>Keterangan</th><th>Aksi</th></tr></thead>
-      <tbody id="tblSuppliers"></tbody>
-    </table>
-  </div>
+        function formatRupiah(num) {
+            return "Rp. " + num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
 
-  <!-- Categories -->
-  <div id="page-categories" class="page" style="display:none">
-    <div class="d-flex justify-content-between align-items-center">
-      <h3>Kategori</h3>
-      <button class="btn btn-primary" id="btnAddCategory">Tambah Kategori</button>
-    </div>
-    <table class="table table-striped mt-3">
-      <thead><tr><th>Nama</th><th>Aksi</th></tr></thead>
-      <tbody id="tblCategories"></tbody>
-    </table>
-  </div>
+        function loadPembayaran() {
+            const table = document.getElementById('paymentTable');
+            table.innerHTML = "";
+            pembayaran.forEach(p => {
+                table.innerHTML += `
+                    <tr>
+                        <td>${p.id}</td>
+                        <td>${p.pembeli}</td>
+                        <td>${formatRupiah(p.total)}</td>
+                        <td>${p.tanggal}</td>
+                        <td><span class="badge bg-success">${p.status}</span></td>
+                        <td><button class="btn btn-info btn-sm">Detail</button></td>
+                    </tr>
+                `;
+            });
 
-  <!-- Items -->
-  <div id="page-items" class="page" style="display:none">
-    <div class="d-flex justify-content-between align-items-center">
-      <h3>Item</h3>
-      <button class="btn btn-primary" id="btnAddItem">Tambah Item</button>
-    </div>
-    <table class="table table-striped mt-3">
-      <thead><tr><th>Nama</th><th>Aksi</th></tr></thead>
-      <tbody id="tblItems"></tbody>
-    </table>
-  </div>
+            document.getElementById("countUsers").innerText = "2 Akun";
+            document.getElementById("countOrders").innerText = pembayaran.length + " Data";
+            document.getElementById("totalIncome").innerText = formatRupiah(pembayaran[0].total);
+        }
 
-  <!-- Products -->
-  <div id="page-products" class="page" style="display:none">
-    <div class="d-flex justify-content-between align-items-center">
-      <h3>Produk</h3>
-      <button class="btn btn-primary" id="btnAddProduct">Tambah Produk</button>
-    </div>
-    <table class="table table-striped mt-3">
-      <thead><tr><th>Photo</th><th>Nama</th><th>Supplier</th><th>Kategori</th><th>Item</th><th>Stok</th><th>Harga</th><th>Aksi</th></tr></thead>
-      <tbody id="tblProducts"></tbody>
-    </table>
-  </div>
-
-  <!-- Transactions -->
-  <div id="page-trans" class="page" style="display:none">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h3>Transaksi</h3>
-      <div>
-        <button class="btn btn-success" id="btnNewTrans">Buat Transaksi</button>
-      </div>
-    </div>
-    <table class="table table-striped mt-3">
-      <thead><tr><th>ID</th><th>Tanggal</th><th>Total</th><th>Customer</th><th>Status</th><th>Aksi</th></tr></thead>
-      <tbody id="tblTrans"></tbody>
-    </table>
-  </div>
-
-  <!-- Reports -->
-  <div id="page-reports" class="page" style="display:none">
-    <h3>Laporan</h3>
-    <div class="row">
-      <div class="col-md-6">
-        <h5>Penjualan per Produk</h5>
-        <canvas id="reportChart" height="200"></canvas>
-      </div>
-      <div class="col-md-6">
-        <h5>Export / Ringkasan</h5>
-        <pre id="exportJson" style="height:300px;overflow:auto;background:#f8f9fa;padding:8px;border-radius:6px;"></pre>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modals (single generic modal used for forms) -->
-<div class="modal fade" id="modalForm" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header"><h5 id="modalTitle"></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-      <div class="modal-body" id="modalBody"></div>
-      <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" id="modalSave">Simpan</button></div>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-// Simple local DB wrapper using localStorage
-const DB = {
-  keys: ['users','suppliers','categories','items','products','transactions','activities'],
-  init(){ this.keys.forEach(k=>{ if(!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify([])); }); },
-  all(key){ return JSON.parse(localStorage.getItem(key)||'[]'); },
-  save(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); },
-  add(key, obj){ const a=this.all(key); a.push(obj); this.save(key,a); },
-  update(key, id, updater){ const a=this.all(key); const i=a.findIndex(x=>x.id===id); if(i===-1) return false; a[i]=updater(a[i]); this.save(key,a); return true; },
-  remove(key,id){ const a=this.all(key).filter(x=>x.id!==id); this.save(key,a); }
-};
-
-// Utils
-const uid = ()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
-const showToast = (txt)=>{ const el=document.createElement('div'); el.className='toast align-items-center text-bg-primary border-0 position-fixed end-0 m-3'; el.style.zIndex=9999; el.innerHTML=`<div class="d-flex"><div class="toast-body">${txt}</div><button class="btn-close btn-close-white ms-2 me-2" onclick="this.parentNode.parentNode.remove()"></button></div>`; document.body.appendChild(el); setTimeout(()=>el.remove(),2500); };
-
-// Render helpers
-function renderCounts(){ document.getElementById('count-users').textContent = DB.all('users').length; document.getElementById('count-products').textContent = DB.all('products').length; document.getElementById('count-trans').textContent = DB.all('transactions').length; }
-function logActivity(txt){ const act = {id:uid(), t:new Date().toLocaleString(), txt}; DB.add('activities', act); renderActivities(); }
-function renderActivities(){ const list = DB.all('activities').slice(-10).reverse(); const container = document.getElementById('activity-log'); container.innerHTML=''; list.forEach(a=>{ const li = document.createElement('li'); li.className='list-group-item small'; li.textContent = `${a.t} - ${a.txt}`; container.appendChild(li); }); }
-
-// NAV
-document.querySelectorAll('[data-nav]').forEach(a=>a.addEventListener('click', (e)=>{ e.preventDefault(); openPage(a.getAttribute('data-nav')); }));
-function openPage(page){ document.querySelectorAll('.page').forEach(p=>p.style.display='none'); document.getElementById('page-'+page).style.display='block'; renderAll(); }
-
-// Generic modal control
-const modal = new bootstrap.Modal(document.getElementById('modalForm'));
-function showForm(title, html, onSave){ document.getElementById('modalTitle').textContent = title; document.getElementById('modalBody').innerHTML = html; const btn=document.getElementById('modalSave'); btn.onclick = ()=>{ try{ onSave(); modal.hide(); }catch(err){ alert(err.message); } }; modal.show(); }
-
-// Users CRUD
-function renderUsers(){ const t=document.getElementById('tblUsers'); t.innerHTML=''; DB.all('users').forEach(u=>{ const tr=document.createElement('tr'); tr.innerHTML = `
-<td><img src="${u.photo||'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=48 height=48></svg>'}" class="thumb"/></td>
-<td>${u.name}</td><td>${u.nik}</td><td>${u.hp}</td><td>${u.alamat}</td>
-<td><button class="btn btn-sm btn-warning me-1" onclick="editUser('${u.id}')">Edit</button><button class="btn btn-sm btn-danger" onclick="delUser('${u.id}')">Hapus</button></td>`;
-    t.appendChild(tr);
-  }); }
-
-function addUserForm(){ showForm('Tambah User', `
-<form id="fUser">
-<div class="row g-2">
-<div class="col-md-6"><label class="form-label">Nama</label><input class="form-control" name="name" required></div>
-<div class="col-md-6"><label class="form-label">NIK</label><input class="form-control" name="nik" required></div>
-<div class="col-md-6"><label class="form-label">HP</label><input class="form-control" name="hp"></div>
-<div class="col-md-6"><label class="form-label">Alamat</label><input class="form-control" name="alamat"></div>
-<div class="col-12"><label class="form-label">Photo (jpeg/png)</label><input type="file" accept="image/*" class="form-control" name="photo"></div>
-</div>
-</form>`, ()=>{
-  const f=document.getElementById('fUser'); const data = new FormData(f);
-  const reader = data.get('photo');
-  if(reader && reader.size>0){ const r = new FileReader(); r.onload = ()=>{ const u={id:uid(), name:data.get('name'), nik:data.get('nik'), hp:data.get('hp'), alamat:data.get('alamat'), photo:r.result}; DB.add('users', u); renderUsers(); renderCounts(); logActivity('Tambah user: '+u.name); showToast('User disimpan'); }; r.readAsDataURL(reader);
-  } else { const u={id:uid(), name:data.get('name'), nik:data.get('nik'), hp:data.get('hp'), alamat:data.get('alamat'), photo:''}; DB.add('users', u); renderUsers(); renderCounts(); logActivity('Tambah user: '+u.name); showToast('User disimpan'); }
-}); }
-
-function editUser(id){ const u = DB.all('users').find(x=>x.id===id); if(!u) return; showForm('Edit User', `
-<form id="fUser">
-<div class="row g-2">
-<div class="col-md-6"><label class="form-label">Nama</label><input class="form-control" name="name" value="${u.name}" required></div>
-<div class="col-md-6"><label class="form-label">NIK</label><input class="form-control" name="nik" value="${u.nik}" required></div>
-<div class="col-md-6"><label class="form-label">HP</label><input class="form-control" name="hp" value="${u.hp}"></div>
-<div class="col-md-6"><label class="form-label">Alamat</label><input class="form-control" name="alamat" value="${u.alamat}"></div>
-<div class="col-12"><label class="form-label">Ganti Photo (kosongkan untuk tidak mengubah)</label><input type="file" accept="image/*" class="form-control" name="photo"></div>
-</div>
-</form>`, ()=>{
-  const f=document.getElementById('fUser'); const data = new FormData(f); const reader = data.get('photo');
-  const arr = DB.all('users'); const i = arr.findIndex(x=>x.id===id);
-  if(reader && reader.size>0){ const r = new FileReader(); r.onload = ()=>{ arr[i] = {...arr[i], name:data.get('name'), nik:data.get('nik'), hp:data.get('hp'), alamat:data.get('alamat'), photo:r.result}; DB.save('users', arr); renderUsers(); showToast('User diperbarui'); logActivity('Edit user: '+arr[i].name); } ; r.readAsDataURL(reader);
-  } else { arr[i] = {...arr[i], name:data.get('name'), nik:data.get('nik'), hp:data.get('hp'), alamat:data.get('alamat')}; DB.save('users', arr); renderUsers(); showToast('User diperbarui'); logActivity('Edit user: '+arr[i].name); }
-}); }
-
-function delUser(id){ if(!confirm('Hapus user?')) return; DB.remove('users', id); renderUsers(); renderCounts(); showToast('User dihapus'); }
-
-// Suppliers CRUD
-function renderSuppliers(){ const t=document.getElementById('tblSuppliers'); t.innerHTML=''; DB.all('suppliers').forEach(s=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${s.name}</td><td>${s.hp}</td><td>${s.ket||''}</td><td><button class="btn btn-sm btn-warning me-1" onclick="editSupplier('${s.id}')">Edit</button><button class="btn btn-sm btn-danger" onclick="delSupplier('${s.id}')">Hapus</button></td>`; t.appendChild(tr); }); }
-function addSupplierForm(){ showForm('Tambah Supplier', `<form id="fSup"><div class="row g-2"><div class="col-md-6"><label class="form-label">Nama Perusahaan</label><input class="form-control" name="name" required></div><div class="col-md-6"><label class="form-label">HP</label><input class="form-control" name="hp"></div><div class="col-12"><label class="form-label">Keterangan</label><input class="form-control" name="ket"></div></div></form>`, ()=>{ const f=document.getElementById('fSup'); const d=new FormData(f); const s={id:uid(), name:d.get('name'), hp:d.get('hp'), ket:d.get('ket')}; DB.add('suppliers', s); renderSuppliers(); showToast('Supplier disimpan'); logActivity('Tambah supplier: '+s.name); }); }
-function editSupplier(id){ const s=DB.all('suppliers').find(x=>x.id===id); showForm('Edit Supplier', `<form id="fSup"><div class="row g-2"><div class="col-md-6"><label class="form-label">Nama Perusahaan</label><input class="form-control" name="name" value="${s.name}" required></div><div class="col-md-6"><label class="form-label">HP</label><input class="form-control" name="hp" value="${s.hp}"></div><div class="col-12"><label class="form-label">Keterangan</label><input class="form-control" name="ket" value="${s.ket}"></div></div></form>`, ()=>{ const f=document.getElementById('fSup'); const d=new FormData(f); const arr=DB.all('suppliers'); const i=arr.findIndex(x=>x.id===id); arr[i]={...arr[i], name:d.get('name'), hp:d.get('hp'), ket:d.get('ket')}; DB.save('suppliers', arr); renderSuppliers(); showToast('Supplier diperbarui'); logActivity('Edit supplier: '+arr[i].name); }); }
-function delSupplier(id){ if(!confirm('Hapus supplier?')) return; DB.remove('suppliers', id); renderSuppliers(); showToast('Supplier dihapus'); }
-
-// Categories CRUD
-function renderCategories(){ const t=document.getElementById('tblCategories'); t.innerHTML=''; DB.all('categories').forEach(c=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${c.name}</td><td><button class="btn btn-sm btn-warning me-1" onclick="editCategory('${c.id}')">Edit</button><button class="btn btn-sm btn-danger" onclick="delCategory('${c.id}')">Hapus</button></td>`; t.appendChild(tr); }); }
-function addCategoryForm(){ showForm('Tambah Kategori', `<form id="fCat"><label class="form-label">Nama</label><input class="form-control" name="name" required></form>`, ()=>{ const f=document.getElementById('fCat'); const d=new FormData(f); DB.add('categories',{id:uid(), name:d.get('name')}); renderCategories(); showToast('Kategori disimpan'); logActivity('Tambah kategori: '+d.get('name')); }); }
-function editCategory(id){ const c=DB.all('categories').find(x=>x.id===id); showForm('Edit Kategori', `<form id="fCat"><label class="form-label">Nama</label><input class="form-control" name="name" value="${c.name}" required></form>`, ()=>{ const f=document.getElementById('fCat'); const d=new FormData(f); const arr=DB.all('categories'); const i=arr.findIndex(x=>x.id===id); arr[i].name=d.get('name'); DB.save('categories', arr); renderCategories(); showToast('Kategori diperbarui'); logActivity('Edit kategori: '+arr[i].name); }); }
-function delCategory(id){ if(!confirm('Hapus kategori?')) return; DB.remove('categories', id); renderCategories(); showToast('Kategori dihapus'); }
-
-// Items CRUD
-function renderItems(){ const t=document.getElementById('tblItems'); t.innerHTML=''; DB.all('items').forEach(c=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${c.name}</td><td><button class="btn btn-sm btn-warning me-1" onclick="editItem('${c.id}')">Edit</button><button class="btn btn-sm btn-danger" onclick="delItem('${c.id}')">Hapus</button></td>`; t.appendChild(tr); }); }
-function addItemForm(){ showForm('Tambah Item', `<form id="fItem"><label class="form-label">Nama Item</label><input class="form-control" name="name" required></form>`, ()=>{ const f=document.getElementById('fItem'); const d=new FormData(f); DB.add('items',{id:uid(), name:d.get('name')}); renderItems(); showToast('Item disimpan'); logActivity('Tambah item: '+d.get('name')); }); }
-function editItem(id){ const c=DB.all('items').find(x=>x.id===id); showForm('Edit Item', `<form id="fItem"><label class="form-label">Nama Item</label><input class="form-control" name="name" value="${c.name}" required></form>`, ()=>{ const f=document.getElementById('fItem'); const d=new FormData(f); const arr=DB.all('items'); const i=arr.findIndex(x=>x.id===id); arr[i].name=d.get('name'); DB.save('items', arr); renderItems(); showToast('Item diperbarui'); logActivity('Edit item: '+arr[i].name); }); }
-function delItem(id){ if(!confirm('Hapus item?')) return; DB.remove('items', id); renderItems(); showToast('Item dihapus'); }
-
-// Products CRUD
-function renderProducts(){ const t=document.getElementById('tblProducts'); t.innerHTML=''; const sup=DB.all('suppliers'); const cat=DB.all('categories'); const it=DB.all('items'); DB.all('products').forEach(p=>{ const tr=document.createElement('tr'); const s = sup.find(x=>x.id===p.supplierId)?.name||'-'; const c = cat.find(x=>x.id===p.categoryId)?.name||'-'; const itn = it.find(x=>x.id===p.itemId)?.name||'-'; tr.innerHTML=`<td><img src="${p.photo||'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=48 height=48></svg>'}" class="thumb"/></td><td>${p.name}</td><td>${s}</td><td>${c}</td><td>${itn}</td><td>${p.stock}</td><td>${p.price}</td><td><button class="btn btn-sm btn-warning me-1" onclick="editProduct('${p.id}')">Edit</button><button class="btn btn-sm btn-danger" onclick="delProduct('${p.id}')">Hapus</button></td>`; t.appendChild(tr); }); }
-function addProductForm(){ const suppliers = DB.all('suppliers'), categories = DB.all('categories'), items = DB.all('items'); showForm('Tambah Produk', `<form id="fProd"><div class="row g-2"><div class="col-md-6"><label class="form-label">Nama Produk</label><input class="form-control" name="name" required></div><div class="col-md-6"><label class="form-label">Supplier</label><select class="form-select" name="supplierId">${suppliers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div><div class="col-md-6"><label class="form-label">Kategori</label><select class="form-select" name="categoryId">${categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div><div class="col-md-6"><label class="form-label">Item</label><select class="form-select" name="itemId">${items.map(i=>`<option value="${i.id}">${i.name}</option>`).join('')}</select></div><div class="col-md-4"><label class="form-label">Stok</label><input class="form-control" name="stock" type="number" value="0"></div><div class="col-md-4"><label class="form-label">Harga</label><input class="form-control" name="price" type="number" value="0"></div><div class="col-md-4"><label class="form-label">Photo</label><input type="file" accept="image/*" class="form-control" name="photo"></div></div></form>`, ()=>{ const f=document.getElementById('fProd'); const d=new FormData(f); const reader = d.get('photo'); const p = {id:uid(), name:d.get('name'), supplierId:d.get('supplierId'), categoryId:d.get('categoryId'), itemId:d.get('itemId'), stock: Number(d.get('stock')||0), price: Number(d.get('price')||0), photo: ''}; if(reader && reader.size>0){ const r=new FileReader(); r.onload=()=>{ p.photo=r.result; DB.add('products', p); renderProducts(); renderCounts(); showToast('Produk disimpan'); logActivity('Tambah produk: '+p.name); }; r.readAsDataURL(reader);} else { DB.add('products', p); renderProducts(); renderCounts(); showToast('Produk disimpan'); logActivity('Tambah produk: '+p.name); } }); }
-function editProduct(id){ const p=DB.all('products').find(x=>x.id===id); const suppliers = DB.all('suppliers'), categories = DB.all('categories'), items = DB.all('items'); showForm('Edit Produk', `<form id="fProd"><div class="row g-2"><div class="col-md-6"><label class="form-label">Nama Produk</label><input class="form-control" name="name" value="${p.name}" required></div><div class="col-md-6"><label class="form-label">Supplier</label><select class="form-select" name="supplierId">${suppliers.map(s=>`<option value="${s.id}" ${s.id===p.supplierId?'selected':''}>${s.name}</option>`).join('')}</select></div><div class="col-md-6"><label class="form-label">Kategori</label><select class="form-select" name="categoryId">${categories.map(c=>`<option value="${c.id}" ${c.id===p.categoryId?'selected':''}>${c.name}</option>`).join('')}</select></div><div class="col-md-6"><label class="form-label">Item</label><select class="form-select" name="itemId">${items.map(i=>`<option value="${i.id}" ${i.id===p.itemId?'selected':''}>${i.name}</option>`).join('')}</select></div><div class="col-md-4"><label class="form-label">Stok</label><input class="form-control" name="stock" type="number" value="${p.stock}"></div><div class="col-md-4"><label class="form-label">Harga</label><input class="form-control" name="price" type="number" value="${p.price}"></div><div class="col-md-4"><label class="form-label">Ganti Photo (kosongkan jika tidak)</label><input type="file" accept="image/*" class="form-control" name="photo"></div></div></form>`, ()=>{ const f=document.getElementById('fProd'); const d=new FormData(f); const reader = d.get('photo'); const arr=DB.all('products'); const i=arr.findIndex(x=>x.id===id); if(reader && reader.size>0){ const r=new FileReader(); r.onload=()=>{ arr[i]={...arr[i], name:d.get('name'), supplierId:d.get('supplierId'), categoryId:d.get('categoryId'), itemId:d.get('itemId'), stock:Number(d.get('stock')), price:Number(d.get('price')), photo:r.result}; DB.save('products', arr); renderProducts(); showToast('Produk diperbarui'); logActivity('Edit produk: '+arr[i].name); }; r.readAsDataURL(reader);} else { arr[i]={...arr[i], name:d.get('name'), supplierId:d.get('supplierId'), categoryId:d.get('categoryId'), itemId:d.get('itemId'), stock:Number(d.get('stock')), price:Number(d.get('price'))}; DB.save('products', arr); renderProducts(); showToast('Produk diperbarui'); logActivity('Edit produk: '+arr[i].name); } }); }
-function delProduct(id){ if(!confirm('Hapus produk?')) return; DB.remove('products', id); renderProducts(); renderCounts(); showToast('Produk dihapus'); }
-
-// Transactions (simple POS)
-function renderTrans(){ const t=document.getElementById('tblTrans'); t.innerHTML=''; DB.all('transactions').forEach(trx=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${trx.id}</td><td>${new Date(trx.date).toLocaleString()}</td><td>${trx.total}</td><td>${trx.customerName||'-'}</td><td>${trx.status||'Lunas'}</td><td><button class="btn btn-sm btn-info" onclick="viewTrans('${trx.id}')">Lihat</button></td>`; t.appendChild(tr); }); }
-function newTransactionForm(){ const products = DB.all('products'); if(products.length===0){ alert('Belum ada produk.'); return; }
-  let cart = [];
-  const prodOptions = products.map(p=>`<option value="${p.id}">${p.name} (stok: ${p.stock}) - Rp ${p.price}</option>`).join('');
-  const html = `
-  <div id="pos">
-    <div class="row">
-      <div class="col-md-6">
-        <label>Customer (optional)</label>
-        <input class="form-control mb-2" id="posCustomer" placeholder="Nama pelanggan">
-        <label>Pilih Produk</label>
-        <div class="input-group mb-2"><select class="form-select" id="posProduct">${prodOptions}</select><input class="form-control" id="posQty" type="number" value="1"><button class="btn btn-outline-secondary" id="posAdd">Tambah</button></div>
-        <table class="table"><thead><tr><th>Produk</th><th>Qty</th><th>Subtotal</th><th></th></tr></thead><tbody id="posCart"></tbody></table>
-      </div>
-      <div class="col-md-6">
-        <h5>Ringkasan</h5>
-        <p>Total: <strong id="posTotal">0</strong></p>
-        <label>Pilih Metode</label>
-        <select class="form-select mb-2" id="posMethod"><option value="cash">Cash</option><option value="transfer">Transfer</option><option value="kredit">Kredit</option></select>
-        <button class="btn btn-success" id="posCheckout">Checkout</button>
-      </div>
-    </div>
-  </div>`;
-  showForm('Transaksi Baru', html, ()=>{
-    // onSave will be triggered by posCheckout; but to be safe handle
-    document.getElementById('posCheckout').click();
-  });
-  // wire handlers
-  function refreshCart(){ const tbody=document.getElementById('posCart'); tbody.innerHTML=''; let tot=0; cart.forEach((c, idx)=>{ const p=products.find(x=>x.id===c.productId); const tr=document.createElement('tr'); tr.innerHTML=`<td>${p.name}</td><td>${c.qty}</td><td>${p.price*c.qty}</td><td><button class="btn btn-sm btn-danger" onclick="(function(){cart.splice(${idx},1); refreshCart();})()">x</button></td>`; tbody.appendChild(tr); tot+=p.price*c.qty; }); document.getElementById('posTotal').textContent = tot; }
-  document.getElementById('posAdd').onclick = ()=>{ const pid = document.getElementById('posProduct').value; const qty = Number(document.getElementById('posQty').value||1); const p = products.find(x=>x.id===pid); if(!p) return; if(qty<=0){ alert('Qty minimal 1'); return; } if(qty>p.stock){ alert('Stok tidak cukup'); return; } const exist = cart.find(x=>x.productId===pid); if(exist){ exist.qty += qty; } else { cart.push({productId: pid, qty}); } refreshCart(); };
-  document.getElementById('posCheckout').onclick = ()=>{
-    if(cart.length===0){ alert('Cart kosong'); return; }
-    const method = document.getElementById('posMethod').value; const customer = document.getElementById('posCustomer').value;
-    let total = 0; cart.forEach(it=>{ const p = products.find(x=>x.id===it.productId); total += p.price*it.qty; p.stock -= it.qty; });
-    const trx = {id: 'TRX'+uid(), date: new Date().toISOString(), total, customerName: customer, status: method==='kredit' ? 'Kredit' : 'Lunas', items: cart, method};
-    DB.add('transactions', trx); DB.save('products', products); renderProducts(); renderTrans(); renderCounts(); logActivity('Transaksi: '+trx.id+' total '+trx.total); document.getElementById('modalBody').innerHTML = `<div class="p-3">Transaksi berhasil. ID: ${trx.id}<pre>${JSON.stringify(trx, null,2)}</pre></div>`; showToast('Transaksi tersimpan'); }
-}
-function viewTrans(id){ const trx = DB.all('transactions').find(x=>x.id===id); showForm('Detail Transaksi', `<pre>${JSON.stringify(trx, null, 2)}</pre>`, ()=>{}); }
-
-// Reports
-function renderReportChart(){ const ctx = document.getElementById('reportChart'); if(!ctx) return; const products = DB.all('products'); const trans = DB.all('transactions'); const sales = {};
-  trans.forEach(t=>{ t.items.forEach(it=>{ const p = products.find(x=>x.id===it.productId); if(!p) return; sales[p.name] = (sales[p.name]||0) + (p.price*it.qty); }); });
-  const labels = Object.keys(sales); const data = Object.values(sales);
-  if(window._reportChart) window._reportChart.destroy(); window._reportChart = new Chart(ctx, {type:'bar', data:{labels, datasets:[{label:'Penjualan', data}]}});
-}
-
-// Dashboard chart
-function renderDashboardChart(){ const ctx = document.getElementById('chartSales'); if(!ctx) return; const trans = DB.all('transactions').slice(-12); const labels = trans.map(t=>new Date(t.date).toLocaleString()); const data = trans.map(t=>t.total);
-  if(window._dashChart) window._dashChart.destroy(); window._dashChart = new Chart(ctx, {type:'line', data:{labels, datasets:[{label:'Total Transaksi', data}]}});
-}
-
-function renderAll(){ renderCounts(); renderActivities(); renderUsers(); renderSuppliers(); renderCategories(); renderItems(); renderProducts(); renderTrans(); renderReportChart(); renderDashboardChart(); document.getElementById('exportJson').textContent = JSON.stringify({users:DB.all('users'), suppliers:DB.all('suppliers'), categories:DB.all('categories'), items:DB.all('items'), products:DB.all('products'), transactions:DB.all('transactions')}, null, 2);
-}
-
-// Reset DB
-document.getElementById('btnReset').addEventListener('click', ()=>{ if(!confirm('Reset semua data?')) return; DB.keys.forEach(k=>localStorage.removeItem(k)); DB.init(); renderAll(); showToast('Data direset'); });
-
-// wire buttons
-document.getElementById('btnAddUser').addEventListener('click', addUserForm);
-document.getElementById('btnAddSupplier').addEventListener('click', addSupplierForm);
-document.getElementById('btnAddCategory').addEventListener('click', addCategoryForm);
-document.getElementById('btnAddItem').addEventListener('click', addItemForm);
-document.getElementById('btnAddProduct').addEventListener('click', addProductForm);
-document.getElementById('btnNewTrans').addEventListener('click', newTransactionForm);
-
-// init
-DB.init(); if(!DB.all('activities').length){ DB.add('activities',{id:uid(),t:new Date().toLocaleString(),txt:'Sistem diinisialisasi'}); }
-openPage('dashboard');
-
-</script>
+        loadPembayaran();
+    </script>
 </body>
 </html>
