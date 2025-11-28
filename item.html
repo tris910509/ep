@@ -1,1 +1,12 @@
-<html><body><h1>Item</h1></body></html>
+<!-- item.html -->
+<!doctype html><html lang="id"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Item</title><link rel="stylesheet" href="css/style.css"></head>
+<body>
+<aside class="sidebar"><h2>SPelayanan</h2><nav><a href="index.html">Dashboard</a><a href="users.html">Users</a><a href="supplier.html">Supplier</a><a href="kategori.html">Kategori</a><a href="item.html">Item</a><a href="produk.html">Produk</a><a href="transaksi.html">Transaksi</a><a href="laporan.html">Laporan</a><a href="pengaturan.html">Pengaturan</a></nav></aside>
+<main class="main"><header><h1>Manajemen Item</h1></header>
+<div class="toolbar"><button class="btn" id="openAdd">Tambah Item</button><input id="search" class="input" placeholder="Cari item" /></div>
+<table class="table" id="table"><thead><tr><th>Nama Item</th><th>Aksi</th></tr></thead><tbody></tbody></table>
+<div class="footer small">Data tersimpan di localStorage (key: item)</div></main>
+
+<div id="modal" style="display:none" class="modal"><div class="card" style="padding:16px"><h3>Tambah Item</h3><input id="i_nama" class="input" placeholder="Nama Item" /><div style="text-align:right;margin-top:8px"><button class="btn secondary" id="cancel">Batal</button><button class="btn" id="save">Simpan</button></div></div></div>
+<script src="js/storage.js"></script><script src="js/item.js"></script>
+</body></html>
