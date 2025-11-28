@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pembayaran</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <h2>SPelayanan</h2>
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="users.html">Users</a>
+    <a href="supplier.html">Supplier</a>
+    <a href="kategori.html">Kategori</a>
+    <a href="item.html">Item</a>
+    <a href="produk.html">Produk</a>
+    <a href="transaksi.html">Transaksi</a>
+    <a style="background:#eef5ff;color:#2b7cff">Pembayaran</a>
+    <a href="laporan.html">Laporan</a>
+    <a href="pengaturan.html">Pengaturan</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <header><h1>Halaman Pembayaran</h1></header>
+
+  <div class="toolbar">
+    <input id="search" class="input" placeholder="Cari ID transaksi / nama">
+  </div>
+
+  <table class="table" id="tablePay">
+    <thead>
+      <tr>
+        <th>ID Transaksi</th>
+        <th>Nama</th>
+        <th>Total</th>
+        <th>Metode</th>
+        <th>Status</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+</main>
+
+<!-- Modal -->
+<div id="modalPay" class="modal" style="display:none">
+  <div class="card" style="padding:16px">
+    <h3>Pembayaran</h3>
+
+    <div id="formPay">
+      <p><b>ID Transaksi:</b> <span id="p_txid"></span></p>
+      <p><b>Total Bayar:</b> Rp <span id="p_total"></span></p>
+
+      <label>Metode Pembayaran</label>
+      <select id="p_metode" class="input">
+        <option value="cash">Cash</option>
+        <option value="transfer">Transfer</option>
+        <option value="kredit">Kredit</option>
+      </select>
+
+      <!-- Cash -->
+      <div id="cashBox" style="display:none;margin-top:10px">
+        <label>Jumlah Dibayar</label>
+        <input type="number" id="cash_jml" class="input">
+      </div>
+
+      <!-- Transfer -->
+      <div id="transferBox" style="display:none;margin-top:10px">
+        <label>No Referensi Transfer</label>
+        <input type="text" id="tf_ref" class="input">
+      </div>
+
+      <!-- Kredit -->
+      <div id="kreditBox" style="display:none;margin-top:10px">
+        <label>Uang Muka (DP)</label>
+        <input type="number" id="kr_dp" class="input">
+
+        <label>Tenor (bulan)</label>
+        <select id="kr_tenor" class="input">
+          <option value="1">1 Bulan</option>
+          <option value="3">3 Bulan</option>
+          <option value="6">6 Bulan</option>
+          <option value="9">9 Bulan</option>
+          <option value="12">12 Bulan</option>
+        </select>
+
+        <p class="small" id="kr_info"></p>
+      </div>
+
+      <div style="margin-top:15px;text-align:right">
+        <button class="btn secondary" id="p_cancel">Batal</button>
+        <button class="btn" id="p_save">Simpan Pembayaran</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/payment.js"></script>
+
+</body>
+</html>
