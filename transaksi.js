@@ -1,1 +1,0 @@
-console.log('transaksi.js loaded');
