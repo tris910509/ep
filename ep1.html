@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sistem Pelayanan Penjualan - Demo Single File</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11">
+// === CICILAN FLAT ===
+function hitungCicilanFlat(total, bulan, bunga=3.5){
+  let bungaFlat = (total * (bunga/100)) * bulan;
+  return (total + bungaFlat) / bulan;
+}
+
+// === EXPORT INVOICE PDF ===
+function exportInvoicePDF(transaksi){
+  if(!window.jspdf){ alert('jsPDF belum dimuat'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text(`INVOICE TRANSAKSI #${transaksi.id}`, 10, 20);
+  doc.setFontSize(12);
+  doc.text(`Nama Pelanggan: ${transaksi.nama}`, 10, 35);
+  doc.text(`Tanggal: ${new Date().toLocaleString()}`, 10, 45);
+  doc.text(`Metode Pembayaran: ${transaksi.metode}`, 10, 55);
+  let y=70;
+  doc.text("Daftar Produk:",10,y);
+  y+=10;
+  transaksi.items.forEach(p=>{
+    doc.text(`${p.nama} | qty: ${p.qty} | harga: ${p.harga} | total: ${p.total}`,10,y);
+    y+=10;
+  });
+  y+=10;
+  doc.text(`Total Akhir: Rp ${transaksi.totalAkhir}`,10,y);
+  doc.save(`invoice_${transaksi.id}.pdf`);
+}
+
+</script>
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body{padding:20px;background:#f5f7fb}
+    .card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem}
+    .table-sm td, .table-sm th{padding:.45rem}
+    img.thumb{width:48px;height:48px;object-fit:cover;border-radius:6px}
+    .small-muted{font-size:.85rem;color:#666}
+  </style>
+<style>
+  body { background:#f4f9ff; }
+  .navbar, .btn-primary { background:#1976d2!important; border-color:#1565c0!important; }
+  .card-header { background:#2196f3; color:white; }
+  .table thead { background:#1976d2; color:white; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2 class="mb-3">Sistem Pelayanan Penjualan — Demo</h2>
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-primary" data-bs-toggle="offcanvas" data-bs-target="#sidebar">Menu</button>
+        <button class="btn btn-success" id="btnNewTransaction">Buat Transaksi</button>
+        <button class="btn btn-outline-secondary" id="btnExportAll">Export Laporan (CSV/PDF/XLSX)</button>
+        <div class="form-check form-switch ms-2">
+          <input class="form-check-input" type="checkbox" id="toggleDark">
+          <label class="form-check-label small-muted" for="toggleDark">Mode gelap (sederhana)</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Offcanvas Sidebar sebagai navigasi sederhana -->
+  <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title">Menu</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div class="list-group">
+        <a href="#usersSection" class="list-group-item list-group-item-action" data-bs-dismiss="offcanvas">Users</a>
+        <a href="#suppliersSection" class="list-group-item list-group-item-action" data-bs-dismiss="offcanvas">Suppliers</a>
+        <a href="#categoriesSection" class="list-group-item list-group-item-action" data-bs-dismiss="offcanvas">Categories</a>
+        <a href="#itemsSection" class="list-group-item list-group-item-action" data-bs-dismiss="offcanvas">Items</a>
+        <a href="#productsSection" class="list-group-item list-group-item-action" data-bs-dismiss="offcanvas">Products</a>
+        <a href="#transactionsSection" class="list-group-item list-group-item-action" data-bs-dismiss="offcanvas">Transactions</a>
+        <a href="#creditsSection" class="list-group-item list-group-item-action" data-bs-dismiss="offcanvas">Daftar Kredit</a>
+        <a href="#reportsSection" class="list-group-item list-group-item-action" data-bs-dismiss="offcanvas">Laporan</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sections -->
+  <section id="usersSection" class="mb-4">
+    <h4>Users (CRUD)</h4>
+    <div class="card mb-2">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>Kelola pengguna (id, nama, NIK, photo url, hp, alamat)</div>
+        <div>
+          <button class="btn btn-sm btn-primary" id="btnAddUser">Tambah User</button>
+        </div>
+      </div>
+    </div>
+    <div id="usersTable"></div>
+  </section>
+
+  <section id="suppliersSection" class="mb-4">
+    <h4>Suppliers (CRUD)</h4>
+    <div class="card mb-2">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>Kelola supplier (id, nama perusahan, hp, keterangan)</div>
+        <button class="btn btn-sm btn-primary" id="btnAddSupplier">Tambah Supplier</button>
+      </div>
+    </div>
+    <div id="suppliersTable"></div>
+  </section>
+
+  <section id="categoriesSection" class="mb-4">
+    <h4>Categories (CRUD)</h4>
+    <div class="card mb-2">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>Kelola kategori (id, nama)</div>
+        <button class="btn btn-sm btn-primary" id="btnAddCategory">Tambah Kategori</button>
+      </div>
+    </div>
+    <div id="categoriesTable"></div>
+  </section>
+
+  <section id="itemsSection" class="mb-4">
+    <h4>Items (CRUD)</h4>
+    <div class="card mb-2">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>Kelola item (id, nama)</div>
+        <button class="btn btn-sm btn-primary" id="btnAddItem">Tambah Item</button>
+      </div>
+    </div>
+    <div id="itemsTable"></div>
+  </section>
+
+  <section id="productsSection" class="mb-4">
+    <h4>Products (CRUD)</h4>
+    <div class="card mb-2">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>Kelola produk (id, nama produk, supplier, kategori, item, stok, harga)</div>
+        <button class="btn btn-sm btn-primary" id="btnAddProduct">Tambah Produk</button>
+      </div>
+    </div>
+    <div id="productsTable"></div>
+  </section>
+
+  <section id="transactionsSection" class="mb-4">
+    <h4>Transactions (CRUD & Pagination & Filters)</h4>
+    <div class="card mb-2">
+      <div class="card-body">
+        <div class="row g-2 align-items-center">
+          <div class="col-md-3">
+            <input class="form-control" id="filterTransKeyword" placeholder="Cari nama pelanggan / id / produk...">
+          </div>
+          <div class="col-md-2">
+            <select class="form-select" id="filterPaymentMethod">
+              <option value="">Semua Metode</option>
+              <option>cash</option>
+              <option>transfer</option>
+              <option>kredit</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select" id="filterStatus">
+              <option value="">Semua Status</option>
+              <option value="lunas">Lunas</option>
+              <option value="belum">Belum Lunas</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-primary" id="btnApplyFilter">Apply</button>
+              <button class="btn btn-sm btn-outline-secondary" id="btnClearFilter">Clear</button>
+            </div>
+          </div>
+          <div class="col-md-2 text-end">
+            <div class="small-muted">Transactions per page</div>
+            <select id="transPerPage" class="form-select form-select-sm"><option>5</option><option selected>10</option><option>20</option></select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="transactionsTable"></div>
+  </section>
+
+  <section id="creditsSection" class="mb-4">
+    <h4>Daftar Kredit & Cicilan</h4>
+    <div class="card mb-2">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>Daftar kredit (dibuat dari transaksi ketika metode = kredit)</div>
+        <div>
+          <button class="btn btn-sm btn-primary" id="btnAddManualCredit">Tambah Kredit Manual</button>
+        </div>
+      </div>
+    </div>
+    <div id="creditsTable"></div>
+  </section>
+
+  <section id="reportsSection" class="mb-4">
+    <h4>Laporan</h4>
+    <div class="card p-3">
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-success" id="exportCSV">Export CSV</button>
+        <button class="btn btn-outline-primary" id="exportXLSX">Export XLSX</button>
+        <button class="btn btn-outline-danger" id="exportPDF">Export PDF</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Modal templates -->
+<!-- User Modal -->
+<div class="modal fade" id="modalUser" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="formUser">
+        <div class="modal-header"><h5 class="modal-title">Tambah / Edit User</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <input type="hidden" id="userId">
+          <div class="mb-2"><label class="form-label">Nama</label><input class="form-control" id="userName" required></div>
+          <div class="mb-2"><label class="form-label">NIK</label><input class="form-control" id="userNIK"></div>
+          <div class="mb-2"><label class="form-label">Photo URL</label><input class="form-control" id="userPhoto"></div>
+          <div class="mb-2"><label class="form-label">HP</label><input class="form-control" id="userHP"></div>
+          <div class="mb-2"><label class="form-label">Alamat</label><textarea class="form-control" id="userAddress"></textarea></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" type="submit">Simpan</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Supplier Modal -->
+<div class="modal fade" id="modalSupplier" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="formSupplier">
+        <div class="modal-header"><h5 class="modal-title">Tambah / Edit Supplier</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <input type="hidden" id="supplierId">
+          <div class="mb-2"><label class="form-label">Nama Perusahaan</label><input class="form-control" id="supplierName" required></div>
+          <div class="mb-2"><label class="form-label">HP</label><input class="form-control" id="supplierHP"></div>
+          <div class="mb-2"><label class="form-label">Keterangan</label><textarea class="form-control" id="supplierNote"></textarea></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" type="submit">Simpan</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Category Modal -->
+<div class="modal fade" id="modalCategory" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="formCategory">
+        <div class="modal-header"><h5 class="modal-title">Tambah / Edit Kategori</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <input type="hidden" id="categoryId">
+          <div class="mb-2"><label class="form-label">Nama Kategori</label><input class="form-control" id="categoryName" required></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" type="submit">Simpan</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Item Modal -->
+<div class="modal fade" id="modalItem" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="formItem">
+        <div class="modal-header"><h5 class="modal-title">Tambah / Edit Item</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <input type="hidden" id="itemId">
+          <div class="mb-2"><label class="form-label">Nama Item</label><input class="form-control" id="itemName" required></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" type="submit">Simpan</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Product Modal -->
+<div class="modal fade" id="modalProduct" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form id="formProduct">
+        <div class="modal-header"><h5 class="modal-title">Tambah / Edit Produk</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <input type="hidden" id="productId">
+          <div class="row g-2">
+            <div class="col-md-6"><label class="form-label">Nama Produk</label><input class="form-control" id="productName" required></div>
+            <div class="col-md-6"><label class="form-label">Supplier</label><select id="productSupplier" class="form-select"></select></div>
+            <div class="col-md-6"><label class="form-label">Kategori</label><select id="productCategory" class="form-select"></select></div>
+            <div class="col-md-6"><label class="form-label">Item</label><select id="productItem" class="form-select"></select></div>
+            <div class="col-md-4"><label class="form-label">Stok</label><input type="number" min="0" class="form-control" id="productStock" required></div>
+            <div class="col-md-4"><label class="form-label">Harga (Rp)</label><input type="number" min="0" class="form-control" id="productPrice" required></div>
+            <div class="col-md-4"><label class="form-label">Status</label><select id="productStatus" class="form-select"><option value="publik">Publik</option><option value="draft">Draft</option></select></div>
+          </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" type="submit">Simpan</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Transaction Modal -->
+<div class="modal fade" id="modalTransaction" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <form id="formTransaction">
+        <div class="modal-header"><h5 class="modal-title">Buat Transaksi</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <input type="hidden" id="transId">
+          <div class="row g-2">
+            <div class="col-md-3">
+              <label class="form-label">Tipe</label>
+              <select id="transType" class="form-select">
+                <option value="umum">Umum</option>
+                <option value="member">Member</option>
+              </select>
+            </div>
+            <div class="col-md-5" id="memberSelectWrap">
+              <label class="form-label">Pilih Member</label>
+              <select id="transMember" class="form-select"></select>
+            </div>
+            <div class="col-md-4" id="umumWrap" style="display:none">
+              <label class="form-label">Nama Umum</label>
+              <input class="form-control" id="transUmumName">
+            </div>
+
+            <div class="col-md-12 mt-2">
+              <label class="form-label">Pilih Produk (klik untuk tambah ke keranjang)</label>
+              <div id="productsListBox" class="mb-2"></div>
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered" id="cartTable">
+                  <thead class="table-light"><tr><th>#</th><th>Produk</th><th>Harga</th><th>Diskon</th><th>Qty</th><th>SubTotal</th><th>Aksi</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Subtotal</label>
+              <input class="form-control" id="transSubtotal" readonly>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Biaya Admin (15%)</label>
+              <input class="form-control" id="transAdminFee" readonly>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Total (sebelum bunga)</label>
+              <input class="form-control" id="transTotalBeforeInterest" readonly>
+            </div>
+
+            <div class="col-md-4 mt-2">
+              <label class="form-label">Metode Pembayaran</label>
+              <select id="transPaymentMethod" class="form-select" required>
+                <option value="cash">Cash</option>
+                <option value="transfer">Transfer</option>
+                <option value="kredit">Kredit</option>
+              </select>
+            </div>
+            <div class="col-md-4 mt-2" id="cashPaidWrap" style="display:none">
+              <label class="form-label">Jumlah Dibayar (Cash)</label>
+              <input type="number" min="0" class="form-control" id="cashPaid">
+            </div>
+            <div class="col-md-4 mt-2" id="transferWrap" style="display:none">
+              <label class="form-label">Jumlah Transfer / Konfirmasi</label>
+              <input type="number" min="0" class="form-control" id="transferPaid">
+            </div>
+            <div class="col-md-4 mt-2" id="creditWrap" style="display:none">
+              <label class="form-label">Tenor (bulan)</label>
+              <select id="creditTenor" class="form-select"><option>3</option><option>6</option><option>9</option><option>12</option></select>
+            </div>
+
+            <div class="col-md-12 mt-2">
+              <label class="form-label">Catatan</label>
+              <textarea class="form-control" id="transNote"></textarea>
+            </div>
+
+          </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-success" type="submit">Simpan Transaksi</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Kredit Modal (untuk edit cicilan) -->
+<div class="modal fade" id="modalCredit" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form id="formCredit">
+        <div class="modal-header"><h5 class="modal-title">Detail Kredit / Cicilan</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <input type="hidden" id="creditId">
+          <div id="creditDetailBox"></div>
+          <div class="table-responsive mt-3">
+            <table class="table table-sm table-bordered" id="creditScheduleTable">
+              <thead class="table-light"><tr><th>Bulan</th><th>Tanggal Jatuh Tempo</th><th>Jumlah</th><th>Status</th><th>Aksi</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Templates end -->
+
+<script>
+// --- Utility functions ---
+const dbKey = 'spa_demo_db_v1';
+const defaults = {
+  users: [], suppliers: [], categories: [], items: [], products: [], transactions: [], credits: [],
+  settings: { adminFeePercent: 15, monthlyInterestPercent: 3.5 }
+};
+
+function readDB(){
+  const raw = localStorage.getItem(dbKey);
+  if(!raw) { localStorage.setItem(dbKey, JSON.stringify(defaults)); return JSON.parse(JSON.stringify(defaults)); }
+  try{ return JSON.parse(raw); }catch(e){ localStorage.setItem(dbKey, JSON.stringify(defaults)); return JSON.parse(JSON.stringify(defaults)); }
+}
+function writeDB(db){ localStorage.setItem(dbKey, JSON.stringify(db)); }
+function uid(prefix='id'){ return prefix+Math.random().toString(36).slice(2,9); }
+function currency(n){ return new Intl.NumberFormat('id-ID').format(Number(n||0)); }
+
+// initial seed (only if empty arrays)
+(function seed(){ let db = readDB(); if(db.users.length===0){ db.users.push({id:uid('u'),name:'Andi',nik:'1234567890',photo:'https://i.pravatar.cc/80?img=1',hp:'08123456789',address:'Jakarta'}); db.users.push({id:uid('u'),name:'Budi',nik:'987654321',photo:'https://i.pravatar.cc/80?img=2',hp:'08129876543',address:'Bandung'}); }
+if(db.suppliers.length===0){ db.suppliers.push({id:uid('s'),name:'PT. Sumber',hp:'081300000',note:'Supplier rutin'}); }
+if(db.categories.length===0){ db.categories.push({id:uid('c'),name:'Elektronik'}); db.categories.push({id:uid('c'),name:'Furniture'}); }
+if(db.items.length===0){ db.items.push({id:uid('i'),name:'TV'}); db.items.push({id:uid('i'),name':'Meja'}); }
+if(db.products.length===0){ db.products.push({id:uid('p'),name:'TV LED 32"',supplier:db.suppliers[0].id,category:db.categories[0].id,item:db.items[0].id,stock:10,price:2500000,status:'publik'});
+  db.products.push({id:uid('p'),name:'Meja Kayu',supplier:db.suppliers[0].id,category:db.categories[1].id,item:db.items[1].id,stock:5,price:750000, status:'publik'});
+}
+writeDB(db);
+})();
+
+// --- Rendering functions ---
+function renderUsers(){ const db=readDB(); const rows = db.users.map(u=>`<tr><td><img src="${u.photo||'https://via.placeholder.com/48'}" class="thumb"></td><td>${u.name}<div class="small-muted">NIK: ${u.nik||'-'}<br>HP: ${u.hp||'-'}</div></td><td>${u.address||''}</td><td><button class="btn btn-sm btn-outline-primary" data-id="${u.id}" data-act="edit-user">Edit</button> <button class="btn btn-sm btn-outline-danger" data-id="${u.id}" data-act="del-user">Delete</button></td></tr>`).join('');
+  document.getElementById('usersTable').innerHTML = `<table class="table table-sm table-borderless"><tbody>${rows}</tbody></table>`;
+}
+function renderSuppliers(){ const db=readDB(); const rows = db.suppliers.map(s=>`<tr><td>${s.name}</td><td>${s.hp||''}</td><td>${s.note||''}</td><td><button class="btn btn-sm btn-outline-primary" data-id="${s.id}" data-act="edit-supplier">Edit</button> <button class="btn btn-sm btn-outline-danger" data-id="${s.id}" data-act="del-supplier">Delete</button></td></tr>`).join('');
+  document.getElementById('suppliersTable').innerHTML = `<table class="table table-sm table-borderless"><tbody>${rows}</tbody></table>`;
+}
+function renderCategories(){ const db=readDB(); const rows = db.categories.map(c=>`<tr><td>${c.name}</td><td><button class="btn btn-sm btn-outline-primary" data-id="${c.id}" data-act="edit-category">Edit</button> <button class="btn btn-sm btn-outline-danger" data-id="${c.id}" data-act="del-category">Delete</button></td></tr>`).join('');
+  document.getElementById('categoriesTable').innerHTML = `<table class="table table-sm table-borderless"><tbody>${rows}</tbody></table>`;
+}
+function renderItems(){ const db=readDB(); const rows = db.items.map(i=>`<tr><td>${i.name}</td><td><button class="btn btn-sm btn-outline-primary" data-id="${i.id}" data-act="edit-item">Edit</button> <button class="btn btn-sm btn-outline-danger" data-id="${i.id}" data-act="del-item">Delete</button></td></tr>`).join('');
+  document.getElementById('itemsTable').innerHTML = `<table class="table table-sm table-borderless"><tbody>${rows}</tbody></table>`;
+}
+function renderProducts(){ const db=readDB(); const rows = db.products.map(p=>`<tr><td>${p.name}</td><td>${db.suppliers.find(s=>s.id===p.supplier)?.name||'-'}</td><td>${db.categories.find(c=>c.id===p.category)?.name||'-'}</td><td>${p.stock}</td><td>${currency(p.price)}</td><td><button class="btn btn-sm btn-outline-primary" data-id="${p.id}" data-act="edit-product">Edit</button> <button class="btn btn-sm btn-outline-danger" data-id="${p.id}" data-act="del-product">Delete</button></td></tr>`).join('');
+  document.getElementById('productsTable').innerHTML = `<div class="table-responsive"><table class="table table-sm table-bordered"><thead class="table-light"><tr><th>Nama</th><th>Supplier</th><th>Kategori</th><th>Stok</th><th>Harga</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+// Transactions with pagination & filter
+let transPage = 1;
+function renderTransactions(){ const db=readDB();
+  // filters
+  const kw = document.getElementById('filterTransKeyword').value.toLowerCase();
+  const method = document.getElementById('filterPaymentMethod').value;
+  const statusFilter = document.getElementById('filterStatus').value;
+  const perPage = Number(document.getElementById('transPerPage').value||10);
+  let list = db.transactions.slice().reverse();
+  if(kw) list = list.filter(t=> (t.customerName||'').toLowerCase().includes(kw) || t.id.toLowerCase().includes(kw) || t.items.some(it=>it.name.toLowerCase().includes(kw)) );
+  if(method) list = list.filter(t=>t.paymentMethod===method);
+  if(statusFilter) list = list.filter(t=> t.status === (statusFilter==='lunas'?'lunas':'belum') );
+  const total = list.length; const pages = Math.max(1, Math.ceil(total/perPage)); if(transPage>pages) transPage=pages;
+  const start=(transPage-1)*perPage; const pageList = list.slice(start, start+perPage);
+  const rows = pageList.map(t=>`<tr><td>${t.id}</td><td>${t.customerName}</td><td>${t.items.map(it=>it.name+' x'+it.qty).join('<br>')}</td><td>${currency(t.total)}</td><td>${t.paymentMethod}</td><td>${t.status}</td><td><button class="btn btn-sm btn-outline-primary" data-id="${t.id}" data-act="view-trans">View</button> <button class="btn btn-sm btn-outline-danger" data-id="${t.id}" data-act="del-trans">Delete</button></td></tr>`).join('');
+  document.getElementById('transactionsTable').innerHTML = `
+    <div class="table-responsive"><table class="table table-sm table-bordered"><thead class="table-light"><tr><th>ID</th><th>Nama Pelanggan</th><th>Produk</th><th>Total</th><th>Metode</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="d-flex justify-content-between align-items-center"><div>Menampilkan ${start+1}-${Math.min(start+pageList.length,total)} dari ${total}</div><div><button class="btn btn-sm btn-outline-secondary" id="prevPage">Prev</button> <span class="mx-2">Hal ${transPage}/${pages}</span> <button class="btn btn-sm btn-outline-secondary" id="nextPage">Next</button></div></div>
+  `;
+  document.getElementById('prevPage').onclick = ()=>{ if(transPage>1){ transPage--; renderTransactions(); } };
+  document.getElementById('nextPage').onclick = ()=>{ if(transPage<pages){ transPage++; renderTransactions(); } };
+}
+
+// Credits table
+function renderCredits(){ const db=readDB(); const rows = db.credits.map(c=>`<tr><td>${c.id}</td><td>${c.customerName}</td><td>${currency(c.totalAmount)}</td><td>${c.totalMonths} bln</td><td>${c.monthlyAmount?currency(c.monthlyAmount):'-'}</td><td>${c.status}</td><td><button class="btn btn-sm btn-outline-primary" data-id="${c.id}" data-act="view-credit">View</button> <button class="btn btn-sm btn-outline-danger" data-id="${c.id}" data-act="del-credit">Delete</button></td></tr>`).join('');
+  document.getElementById('creditsTable').innerHTML = `<div class="table-responsive"><table class="table table-sm table-bordered"><thead class="table-light"><tr><th>ID</th><th>Nama</th><th>Total</th><th>Durasi</th><th>Angsuran/bln</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+// --- Wire up modals and forms ---
+const bsModalUser = new bootstrap.Modal(document.getElementById('modalUser'));
+const bsModalSupplier = new bootstrap.Modal(document.getElementById('modalSupplier'));
+const bsModalCategory = new bootstrap.Modal(document.getElementById('modalCategory'));
+const bsModalItem = new bootstrap.Modal(document.getElementById('modalItem'));
+const bsModalProduct = new bootstrap.Modal(document.getElementById('modalProduct'));
+const bsModalTrans = new bootstrap.Modal(document.getElementById('modalTransaction'));
+const bsModalCredit = new bootstrap.Modal(document.getElementById('modalCredit'));
+
+// add event listeners for Add buttons
+document.getElementById('btnAddUser').addEventListener('click', ()=>{ document.getElementById('formUser').reset(); document.getElementById('userId').value=''; bsModalUser.show(); });
+document.getElementById('btnAddSupplier').addEventListener('click', ()=>{ document.getElementById('formSupplier').reset(); document.getElementById('supplierId').value=''; bsModalSupplier.show(); });
+document.getElementById('btnAddCategory').addEventListener('click', ()=>{ document.getElementById('formCategory').reset(); document.getElementById('categoryId').value=''; bsModalCategory.show(); });
+document.getElementById('btnAddItem').addEventListener('click', ()=>{ document.getElementById('formItem').reset(); document.getElementById('itemId').value=''; bsModalItem.show(); });
+document.getElementById('btnAddProduct').addEventListener('click', ()=>{ fillSelectOptions(); document.getElementById('formProduct').reset(); document.getElementById('productId').value=''; bsModalProduct.show(); });
+
+// Users form submit
+document.getElementById('formUser').addEventListener('submit', (e)=>{ e.preventDefault(); const db=readDB(); const id=document.getElementById('userId').value; const payload={ id: id||uid('u'), name: document.getElementById('userName').value, nik: document.getElementById('userNIK').value, photo: document.getElementById('userPhoto').value, hp: document.getElementById('userHP').value, address: document.getElementById('userAddress').value };
+  if(id){ const idx=db.users.findIndex(x=>x.id===id); if(idx>-1) db.users[idx]=payload; } else { db.users.push(payload); }
+  writeDB(db); bsModalUser.hide(); renderAll(); Swal.fire('Sukses','Data user disimpan','success'); });
+
+// Supplier submit
+document.getElementById('formSupplier').addEventListener('submit',(e)=>{ e.preventDefault(); const db=readDB(); const id=document.getElementById('supplierId').value; const payload={ id: id||uid('s'), name: document.getElementById('supplierName').value, hp: document.getElementById('supplierHP').value, note: document.getElementById('supplierNote').value };
+  if(id){ const idx=db.suppliers.findIndex(x=>x.id===id); if(idx>-1) db.suppliers[idx]=payload; } else db.suppliers.push(payload);
+  writeDB(db); bsModalSupplier.hide(); renderAll(); Swal.fire('Sukses','Data supplier disimpan','success'); });
+
+// Category submit
+document.getElementById('formCategory').addEventListener('submit',(e)=>{ e.preventDefault(); const db=readDB(); const id=document.getElementById('categoryId').value; const payload={ id: id||uid('c'), name: document.getElementById('categoryName').value };
+  if(id){ const idx=db.categories.findIndex(x=>x.id===id); if(idx>-1) db.categories[idx]=payload; } else db.categories.push(payload);
+  writeDB(db); bsModalCategory.hide(); renderAll(); Swal.fire('Sukses','Data kategori disimpan','success'); });
+
+// Item submit
+document.getElementById('formItem').addEventListener('submit',(e)=>{ e.preventDefault(); const db=readDB(); const id=document.getElementById('itemId').value; const payload={ id: id||uid('i'), name: document.getElementById('itemName').value };
+  if(id){ const idx=db.items.findIndex(x=>x.id===id); if(idx>-1) db.items[idx]=payload; } else db.items.push(payload);
+  writeDB(db); bsModalItem.hide(); renderAll(); Swal.fire('Sukses','Data item disimpan','success'); });
+
+// Product submit
+document.getElementById('formProduct').addEventListener('submit',(e)=>{ e.preventDefault(); const db=readDB(); const id=document.getElementById('productId').value; const payload={ id: id||uid('p'), name: document.getElementById('productName').value, supplier: document.getElementById('productSupplier').value, category: document.getElementById('productCategory').value, item: document.getElementById('productItem').value, stock: Number(document.getElementById('productStock').value), price: Number(document.getElementById('productPrice').value), status: document.getElementById('productStatus').value };
+  if(id){ const idx=db.products.findIndex(x=>x.id===id); if(idx>-1) db.products[idx]=payload; } else db.products.push(payload);
+  writeDB(db); bsModalProduct.hide(); renderAll(); Swal.fire('Sukses','Data produk disimpan','success'); });
+
+// delegate table actions for CRUD
+document.body.addEventListener('click', (e)=>{
+  const act = e.target.dataset.act; const id = e.target.dataset.id;
+  if(!act) return;
+  const db = readDB();
+  if(act==='edit-user'){ const u = db.users.find(x=>x.id===id); if(u){ document.getElementById('userId').value=u.id; document.getElementById('userName').value=u.name; document.getElementById('userNIK').value=u.nik; document.getElementById('userPhoto').value=u.photo; document.getElementById('userHP').value=u.hp; document.getElementById('userAddress').value=u.address; bsModalUser.show(); }}
+  if(act==='del-user'){ Swal.fire({title:'Hapus?',text:'Yakin ingin menghapus user?',icon:'warning',showCancelButton:true}).then(r=>{ if(r.isConfirmed){ db.users=db.users.filter(x=>x.id!==id); writeDB(db); renderAll(); Swal.fire('Deleted','User dihapus','success'); } }); }
+  if(act==='edit-supplier'){ const s=db.suppliers.find(x=>x.id===id); if(s){ document.getElementById('supplierId').value=s.id; document.getElementById('supplierName').value=s.name; document.getElementById('supplierHP').value=s.hp; document.getElementById('supplierNote').value=s.note; bsModalSupplier.show(); }}
+  if(act==='del-supplier'){ Swal.fire({title:'Hapus?',text:'Yakin ingin menghapus supplier?',icon:'warning',showCancelButton:true}).then(r=>{ if(r.isConfirmed){ db.suppliers=db.suppliers.filter(x=>x.id!==id); writeDB(db); renderAll(); Swal.fire('Deleted','Supplier dihapus','success'); } }); }
+  if(act==='edit-category'){ const c=db.categories.find(x=>x.id===id); if(c){ document.getElementById('categoryId').value=c.id; document.getElementById('categoryName').value=c.name; bsModalCategory.show(); }}
+  if(act==='del-category'){ Swal.fire({title:'Hapus?',text:'Yakin ingin menghapus kategori?',icon:'warning',showCancelButton:true}).then(r=>{ if(r.isConfirmed){ db.categories=db.categories.filter(x=>x.id!==id); writeDB(db); renderAll(); Swal.fire('Deleted','Kategori dihapus','success'); } }); }
+  if(act==='edit-item'){ const it=db.items.find(x=>x.id===id); if(it){ document.getElementById('itemId').value=it.id; document.getElementById('itemName').value=it.name; bsModalItem.show(); }}
+  if(act==='del-item'){ Swal.fire({title:'Hapus?',text:'Yakin ingin menghapus item?',icon:'warning',showCancelButton:true}).then(r=>{ if(r.isConfirmed){ db.items=db.items.filter(x=>x.id!==id); writeDB(db); renderAll(); Swal.fire('Deleted','Item dihapus','success'); } }); }
+  if(act==='edit-product'){ const p=db.products.find(x=>x.id===id); if(p){ fillSelectOptions(); document.getElementById('productId').value=p.id; document.getElementById('productName').value=p.name; document.getElementById('productSupplier').value=p.supplier||''; document.getElementById('productCategory').value=p.category||''; document.getElementById('productItem').value=p.item||''; document.getElementById('productStock').value=p.stock; document.getElementById('productPrice').value=p.price; document.getElementById('productStatus').value=p.status||'publik'; bsModalProduct.show(); }}
+  if(act==='del-product'){ Swal.fire({title:'Hapus?',text:'Yakin ingin menghapus produk?',icon:'warning',showCancelButton:true}).then(r=>{ if(r.isConfirmed){ db.products=db.products.filter(x=>x.id!==id); writeDB(db); renderAll(); Swal.fire('Deleted','Produk dihapus','success'); } }); }
+
+  // transactions
+  if(act==='view-trans'){ const t=db.transactions.find(x=>x.id===id); if(t){ Swal.fire({title:`Transaksi ${t.id}`,html:`<b>Pelanggan:</b> ${t.customerName}<br><b>Total:</b> ${currency(t.total)}<br><b>Metode:</b> ${t.paymentMethod}<br><b>Status:</b> ${t.status}`}); } }
+  if(act==='del-trans'){ Swal.fire({title:'Hapus transaksi?',text:'Aksi tidak bisa dibatalkan',icon:'warning',showCancelButton:true}).then(r=>{ if(r.isConfirmed){ db.transactions=db.transactions.filter(x=>x.id!==id); writeDB(db); renderAll(); Swal.fire('Deleted','Transaksi dihapus','success'); } }); }
+
+  // credits actions
+  if(act==='view-credit'){ const c=db.credits.find(x=>x.id===id); if(c){ document.getElementById('creditId').value=c.id; document.getElementById('creditDetailBox').innerHTML=`<div><b>ID:</b> ${c.id}<br><b>Pelanggan:</b> ${c.customerName}<br><b>Total:</b> ${currency(c.totalAmount)}<br><b>Tenor:</b> ${c.totalMonths} bulan<br><b>Bunga/bulan:</b> ${db.settings.monthlyInterestPercent}%<br><b>Biaya Admin:</b> ${db.settings.adminFeePercent}%</div>`;
+      // render schedule
+      const tbody = document.querySelector('#creditScheduleTable tbody'); tbody.innerHTML=''; c.schedule.forEach((s,idx)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${idx+1}</td><td>${s.dueDate}</td><td>${currency(s.amount)}</td><td>${s.paid?'<span class="badge bg-success">Lunas</span>':'<span class="badge bg-warning">Belum</span>'}</td><td>${s.paid?'<button class="btn btn-sm btn-secondary" disabled>Bayar</button>':'<button class="btn btn-sm btn-success" data-id="${c.id}" data-act="pay-installment" data-idx="${idx}">Bayar</button>'}</td>`; tbody.appendChild(tr); });
+      bsModalCredit.show(); }
+  }
+  if(act==='del-credit'){ Swal.fire({title:'Hapus kredit?',text:'Menghapus kredit juga menghapus schedule',icon:'warning',showCancelButton:true}).then(r=>{ if(r.isConfirmed){ db.credits=db.credits.filter(x=>x.id!==id); writeDB(db); renderAll(); Swal.fire('Deleted','Kredit dihapus','success'); } }); }
+  if(act==='pay-installment'){ const idx = Number(e.target.dataset.idx); const creditId = e.target.dataset.id; const c = db.credits.find(x=>x.id===creditId); if(c){ c.schedule[idx].paid=true; // mark paid
+      // check overall status
+      c.status = c.schedule.every(s=>s.paid)?'lunas':'belum'; writeDB(db); renderAll(); bsModalCredit.hide(); Swal.fire('Sukses','Cicilan berhasil dibayar (simulasi)','success'); }
+  }
+});
+
+// Transaction flow (cart)
+let CART = [];
+function fillSelectOptions(){ const db=readDB(); // fill selects in product modal
+  const supSel=document.getElementById('productSupplier'); supSel.innerHTML = db.suppliers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  const catSel=document.getElementById('productCategory'); catSel.innerHTML = db.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const itemSel=document.getElementById('productItem'); itemSel.innerHTML = db.items.map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+  // fill member select for transaction
+  const mSel=document.getElementById('transMember'); mSel.innerHTML = '<option value="">-- Pilih Member --</option>' + db.users.map(u=>`<option value="${u.id}">${u.name} (${u.id})</option>`).join('');
+}
+
+function renderProductsListForCart(){ const db = readDB(); const box = document.getElementById('productsListBox'); box.innerHTML = db.products.filter(p=>p.status==='publik').map(p=>`<button class="btn btn-outline-secondary btn-sm me-1 mb-1" data-id="${p.id}" data-act="add-to-cart">${p.name} (${currency(p.price)}) - Stok: ${p.stock}</button>`).join(''); }
+
+document.body.addEventListener('click', (e)=>{
+  if(e.target.dataset.act==='add-to-cart'){ const pid=e.target.dataset.id; const db=readDB(); const p = db.products.find(x=>x.id===pid); if(!p || p.stock<=0){ Swal.fire('Error','Produk kosong atau tidak ditemukan','error'); return; }
+    const existing = CART.find(c=>c.id===p.id); if(existing){ if(existing.qty+1>p.stock){ Swal.fire('Error','Stok tidak cukup','error'); return; } existing.qty++; existing.subtotal = existing.qty*existing.price; } else { CART.push({ id: p.id, name: p.name, price: p.price, qty: 1, discount: {type:'off',value:0}, subtotal: p.price }); }
+    renderCart(); }
+  if(e.target.dataset.act==='remove-cart'){ const id=e.target.dataset.id; CART = CART.filter(c=>c.id!==id); renderCart(); }
+  if(e.target.dataset.act==='inc-qty'){ const id=e.target.dataset.id; const db=readDB(); const p=db.products.find(x=>x.id===id); const it=CART.find(x=>x.id===id); if(it && p && it.qty+1<=p.stock){ it.qty++; it.subtotal = it.qty*it.price; renderCart(); } }
+  if(e.target.dataset.act==='dec-qty'){ const id=e.target.dataset.id; const it=CART.find(x=>x.id===id); if(it){ it.qty = Math.max(1,it.qty-1); it.subtotal = it.qty*it.price; renderCart(); } }
+});
+
+function renderCart(){ const tbody = document.querySelector('#cartTable tbody'); tbody.innerHTML=''; CART.forEach((c,idx)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${idx+1}</td><td>${c.name}</td><td>${currency(c.price)}</td><td><div class="input-group input-group-sm"><select class="form-select" data-idx="${idx}" data-act="change-discount"><option value="off">Off</option><option value="percent">%</option><option value="rp">Rp</option></select><input type="number" min="0" class="form-control form-control-sm" data-act="discount-val" data-idx="${idx}" value="0"></div></td><td><div class="btn-group btn-group-sm"><button class="btn btn-light" data-act="dec-qty">-</button><button class="btn btn-light" disabled>${c.qty}</button><button class="btn btn-light" data-act="inc-qty" data-id="${c.id}">+</button></div></td><td>${currency(c.subtotal - (c.discount?.type==='rp'?c.discount.value: c.discount?.type==='percent'? (c.discount.value/100)*c.subtotal:0))}</td><td><button class="btn btn-sm btn-danger" data-id="${c.id}" data-act="remove-cart">Hapus</button></td>`; tbody.appendChild(tr); });
+  // attach listeners for discount inputs
+  document.querySelectorAll('[data-act="change-discount"]').forEach(el=>el.onchange = (ev)=>{ const idx=Number(ev.target.dataset.idx); const type = ev.target.value; CART[idx].discount = CART[idx].discount||{type:'off',value:0}; CART[idx].discount.type=type; renderCart(); });
+  document.querySelectorAll('[data-act="discount-val"]').forEach(el=>el.oninput=(ev)=>{ const idx=Number(ev.target.dataset.idx); CART[idx].discount = CART[idx].discount||{type:'off',value:0}; CART[idx].discount.value = Number(ev.target.value||0); renderCart(); });
+  updateTotals(); }
+
+function updateTotals(){ const db=readDB(); let subtotal=0; CART.forEach(c=>{ let line = c.qty*c.price; if(c.discount){ if(c.discount.type==='percent') line = line - (c.discount.value/100)*line; else if(c.discount.type==='rp') line = line - c.discount.value; }
+    subtotal += line; }); document.getElementById('transSubtotal').value = currency(subtotal); const adminFee = subtotal * db.settings.adminFeePercent/100; document.getElementById('transAdminFee').value = currency(adminFee); const beforeInterest = subtotal + adminFee; document.getElementById('transTotalBeforeInterest').value = currency(beforeInterest);
+}
+
+// show/hide payment inputs
+document.getElementById('transPaymentMethod').addEventListener('change', (e)=>{
+  const v=e.target.value; document.getElementById('cashPaidWrap').style.display=v==='cash'?'block':'none'; document.getElementById('transferWrap').style.display=v==='transfer'?'block':'none'; document.getElementById('creditWrap').style.display=v==='kredit'?'block':'none';
+});
+
+// transaction type show member or umum
+document.getElementById('transType').addEventListener('change', (e)=>{
+  if(e.target.value==='member'){ document.getElementById('memberSelectWrap').style.display='block'; document.getElementById('umumWrap').style.display='none'; } else { document.getElementById('memberSelectWrap').style.display='none'; document.getElementById('umumWrap').style.display='block'; }
+});
+
+// open new transaction
+document.getElementById('btnNewTransaction').addEventListener('click', ()=>{
+  CART=[]; renderCart(); fillSelectOptions(); renderProductsListForCart(); document.getElementById('formTransaction').reset(); document.getElementById('transType').value='umum'; document.getElementById('transUmumName').value=''; document.getElementById('transMember').value=''; document.getElementById('cashPaid').value=''; document.getElementById('transferPaid').value=''; document.getElementById('creditTenor').value='3'; document.getElementById('cashPaidWrap').style.display='none'; document.getElementById('transferWrap').style.display='none'; document.getElementById('creditWrap').style.display='none'; bsModalTrans.show(); });
+
+// transaction submit with validation & payment logic
+document.getElementById('formTransaction').addEventListener('submit', (e)=>{
+  e.preventDefault(); const db=readDB(); if(CART.length===0){ Swal.fire('Error','Keranjang kosong','error'); return; }
+  const type = document.getElementById('transType').value; let customerName=''; let customerId=''; if(type==='member'){ customerId = document.getElementById('transMember').value; if(!customerId){ Swal.fire('Error','Pilih member','error'); return; } const u = db.users.find(x=>x.id===customerId); customerName = u?u.name:''; } else { customerName = document.getElementById('transUmumName').value; if(!customerName){ Swal.fire('Error','Masukkan nama umum','error'); return; } }
+  // compute totals
+  let subtotal=0; CART.forEach(c=>{ let line = c.qty*c.price; if(c.discount){ if(c.discount.type==='percent') line = line - (c.discount.value/100)*line; else if(c.discount.type==='rp') line = line - c.discount.value; }
+    subtotal += line; });
+  const adminFee = subtotal * db.settings.adminFeePercent/100; const beforeInterest = subtotal + adminFee; const paymentMethod = document.getElementById('transPaymentMethod').value;
+  // handle payment method validations
+  let status = 'belum'; let paidAmount = 0;
+  if(paymentMethod==='cash'){
+    const paid = Number(document.getElementById('cashPaid').value||0);
+    if(paid < beforeInterest){ // redirect to credit automatically
+      // create credit with remaining amount
+      Swal.fire({title:'Pembayaran kurang',text:'Jumlah cash tidak mencukupi. Sistem akan mengalihkan sisa menjadi kredit. Lanjutkan?',icon:'warning',showCancelButton:true}).then(res=>{
+        if(res.isConfirmed){ // create transaction with partial payment and credit
+          paidAmount = paid; const remaining = beforeInterest - paid;
+          const trans = {
+            id: uid('T'), customerId: customerId||null, customerName, items: JSON.parse(JSON.stringify(CART)), subtotal, adminFee, total: beforeInterest, paymentMethod: 'cash+credit', paid: paidAmount, status: 'belum', note: document.getElementById('transNote').value, date: new Date().toISOString()
+          };
+          db.transactions.push(trans);
+          // decrease stocks for paid portions? We'll decrease total stock immediately for all purchased quantity
+          CART.forEach(it=>{ const prod = db.products.find(p=>p.id===it.id); if(prod) prod.stock = Math.max(0, prod.stock - it.qty); });
+          // create credit for remaining
+          const tenor = Number(document.getElementById('creditTenor').value||3);
+          createCredit(db, trans.id, customerName, remaining, tenor);
+          writeDB(db); renderAll(); bsModalTrans.hide(); Swal.fire('Sukses','Transaksi dicatat, kredit dibuat untuk sisa','success');
+        }
+      });
+      return; // stop further
+    } else { paidAmount = paid; status = 'lunas'; }
+  }
+  if(paymentMethod==='transfer'){
+    const paid = Number(document.getElementById('transferPaid').value||0);
+    // we accept transfer but require admin konfirmasi - for demo if paid==total => lunas else belum
+    if(paid >= beforeInterest){ paidAmount = paid; status='lunas'; } else { paidAmount = paid; status='belum'; Swal.fire('Info','Transfer diterima (simulasi). Jika jumlah belum memenuhi, transaksi tetap tercatat sebagai belum lunas. Anda bisa konfirmasi atau ubah metode jadi kredit nantinya.','info'); }
+  }
+  if(paymentMethod==='kredit'){
+    // create transaction then credit
+    const tenor = Number(document.getElementById('creditTenor').value||3);
+    const trans = { id: uid('T'), customerId: customerId||null, customerName, items: JSON.parse(JSON.stringify(CART)), subtotal, adminFee, total: beforeInterest, paymentMethod:'kredit', paid:0, status:'belum', note: document.getElementById('transNote').value, date: new Date().toISOString() };
+    db.transactions.push(trans);
+    CART.forEach(it=>{ const prod = db.products.find(p=>p.id===it.id); if(prod) prod.stock = Math.max(0, prod.stock - it.qty); });
+    writeDB(db);
+    createCredit(db, trans.id, customerName, beforeInterest, tenor);
+    renderAll(); bsModalTrans.hide(); Swal.fire('Sukses','Transaksi kredit dibuat','success'); return;
+  }
+  // fallback - cash exact or transfer exact
+  const trans = { id: uid('T'), customerId: customerId||null, customerName, items: JSON.parse(JSON.stringify(CART)), subtotal, adminFee, total: beforeInterest, paymentMethod: paymentMethod, paid: paidAmount, status: status, note: document.getElementById('transNote').value, date: new Date().toISOString() };
+  db.transactions.push(trans);
+  // reduce stock
+  CART.forEach(it=>{ const prod = db.products.find(p=>p.id===it.id); if(prod) prod.stock = Math.max(0, prod.stock - it.qty); });
+  writeDB(db); renderAll(); bsModalTrans.hide(); Swal.fire('Sukses','Transaksi disimpan','success');
+});
+
+function createCredit(db, transId, customerName, amount, months){
+  // add admin fee? amount parameter already includes admin fee
+  const settings = db.settings; const monthlyInterest = settings.monthlyInterestPercent/100; // 0.035
+  // For simplicity, compute equal installment including monthly interest applied linearly: We'll compute annuity-type payment
+  // monthlyRate = r; n=months; P=amount => payment = P * r*(1+r)^n / ((1+r)^n -1)
+  const r = monthlyInterest; const n=months; let monthlyPayment=0; if(r>0){ monthlyPayment = amount * (r * Math.pow(1+r,n)) / (Math.pow(1+r,n)-1); } else monthlyPayment = amount / n;
+  monthlyPayment = Math.round(monthlyPayment);
+  const schedule = [];
+  const start = new Date();
+  for(let i=0;i<n;i++){ const due = new Date(start.getFullYear(), start.getMonth()+i+1, start.getDate()); schedule.push({dueDate: due.toISOString().slice(0,10), amount: monthlyPayment, paid:false}); }
+  const credit = { id: uid('CR'), transactionId: transId, customerName, totalAmount: amount, totalMonths: n, monthlyAmount: monthlyPayment, createdAt: new Date().toISOString(), status: 'belum', schedule };
+  db.credits.push(credit);
+}
+
+// manual add credit button
+document.getElementById('btnAddManualCredit').addEventListener('click', ()=>{
+  Swal.fire({title:'Tambah Kredit Manual',html:`<input id="c_name" class="swal2-input" placeholder="Nama pelanggan"><input id="c_amount" type="number" class="swal2-input" placeholder="Jumlah total"><select id="c_tenor" class="swal2-select"><option>3</option><option>6</option><option>9</option><option>12</option></select>`,showCancelButton:true,preConfirm: ()=>{ return { name:document.getElementById('c_name').value, amount: Number(document.getElementById('c_amount').value), tenor: Number(document.getElementById('c_tenor').value) }; }}).then(r=>{ if(r.isConfirmed){ const db=readDB(); createCredit(db, 'manual_'+uid('T'), r.value.name, r.value.amount, r.value.tenor); writeDB(db); renderAll(); Swal.fire('Sukses','Kredit manual ditambahkan','success'); } }); });
+
+// Export functions
+function exportCSV(){ const db=readDB(); // combine transactions
+  let csv = 'id,customerName,total,paymentMethod,status,date\n'; db.transactions.forEach(t=>{ csv+=`${t.id},"${t.customerName}",${t.total},${t.paymentMethod},${t.status},${t.date}\n`; });
+  const blob = new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='transactions.csv'; a.click(); URL.revokeObjectURL(url);
+}
+function exportXLSX(){ const db=readDB(); const ws_data = [['ID','Customer','Total','PaymentMethod','Status','Date']]; db.transactions.forEach(t=> ws_data.push([t.id,t.customerName,t.total,t.paymentMethod,t.status,t.date]) ); const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(ws_data); XLSX.utils.book_append_sheet(wb, ws, 'Transactions'); XLSX.writeFile(wb, 'transactions.xlsx'); }
+function exportPDF(){ const db=readDB(); const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.setFontSize(12); doc.text('Laporan Transaksi',14,16); let y=24; db.transactions.forEach(t=>{ doc.text(`${t.id} | ${t.customerName} | ${currency(t.total)} | ${t.paymentMethod} | ${t.status}`,14,y); y+=8; if(y>270){ doc.addPage(); y=20; } }); doc.save('transactions.pdf'); }
+
+// Buttons
+document.getElementById('exportCSV').addEventListener('click', exportCSV);
+document.getElementById('exportXLSX').addEventListener('click', exportXLSX);
+document.getElementById('exportPDF').addEventListener('click', exportPDF);
+document.getElementById('btnExportAll').addEventListener('click', ()=>{
+  Swal.fire({title:'Export Laporan',showDenyButton:true,showCancelButton:true,confirmButtonText:'CSV',denyButtonText:'XLSX',cancelButtonText:'PDF'}).then(r=>{ if(r.isConfirmed) exportCSV(); else if(r.isDenied) exportXLSX(); else exportPDF(); });
+});
+
+// Filters
+document.getElementById('btnApplyFilter').addEventListener('click', ()=>{ transPage=1; renderTransactions(); });
+document.getElementById('btnClearFilter').addEventListener('click', ()=>{ document.getElementById('filterTransKeyword').value=''; document.getElementById('filterPaymentMethod').value=''; document.getElementById('filterStatus').value=''; transPage=1; renderTransactions(); });
+
+// Export single credit to CSV
+function exportCreditsCSV(){ const db=readDB(); let csv='id,customer,total,months,monthlyAmount,status\n'; db.credits.forEach(c=> csv+=`${c.id},"${c.customerName}",${c.totalAmount},${c.totalMonths},${c.monthlyAmount},${c.status}\n`);
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='credits.csv'; a.click(); URL.revokeObjectURL(url);
+}
+
+// render all
+function renderAll(){ fillSelectOptions(); renderUsers(); renderSuppliers(); renderCategories(); renderItems(); renderProducts(); renderTransactions(); renderCredits(); }
+renderAll();
+
+// small UI niceties
+document.getElementById('toggleDark').addEventListener('change', (e)=>{ document.body.style.background = e.target.checked? '#111827':'#f5f7fb'; document.body.style.color = e.target.checked? '#fff':'#000'; });
+
+</script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
