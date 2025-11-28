@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sistem Pelayanan Penjualan 1 - Single File Demo</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body{padding:20px}
+    .pointer{cursor:pointer}
+    .small-muted{font-size:0.9rem;color:#6c757d}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 class="mb-3">Sistem Pelayanan Penjualan 1 (Demo Single File)</h2>
+
+    <div class="row mb-4">
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-body">
+            <h5>Menu Cepat</h5>
+            <div class="btn-group" role="group">
+              <button class="btn btn-primary" onclick="showTab('users')">Users</button>
+              <button class="btn btn-primary" onclick="showTab('suppliers')">Suppliers</button>
+              <button class="btn btn-primary" onclick="showTab('categories')">Categories</button>
+              <button class="btn btn-primary" onclick="showTab('items')">Items</button>
+              <button class="btn btn-primary" onclick="showTab('products')">Products</button>
+              <button class="btn btn-success" onclick="showTab('transactions')">Transaksi</button>
+              <button class="btn btn-info" onclick="showTab('credits')">Daftar Kredit</button>
+            </div>
+            <p class="small-muted mt-2">Data disimpan ke <code>localStorage</code>. Ini demo frontend lengkap dengan CRUD, validasi, dan fitur transaksi.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-body">
+            <h6>Pengaturan Sistem</h6>
+            <div class="mb-2"><strong>Bunga per bulan:</strong> <span id="cfgInterest">4.20%</span></div>
+            <div class="mb-2"><strong>Biaya admin:</strong> <span id="cfgAdmin">15%</span></div>
+            <div class="form-check">
+              <input id="saveToLocal" class="form-check-input" type="checkbox" checked>
+              <label class="form-check-label" for="saveToLocal">Simpan otomatis ke localStorage</label>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary mt-2" onclick="resetDemo()">Reset Semua Data (hapus)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div id="mainArea"></div>
+
+    <!-- Templates (modals) -->
+    <!-- Image placeholder not necessary -->
+
+  </div>
+
+<script>
+// ---------- Data layer (localStorage) ----------
+const STORAGE_KEYS = {
+  users: 'sp_users',
+  suppliers: 'sp_suppliers',
+  categories: 'sp_categories',
+  items: 'sp_items',
+  products: 'sp_products',
+  transactions: 'sp_transactions',
+  credits: 'sp_credits'
+};
+
+const CONFIG = { interestMonthly: 0.042, adminPercent: 0.15 };
+
+function save(key, data){
+  if(document.getElementById('saveToLocal').checked) localStorage.setItem(key, JSON.stringify(data));
+}
+function load(key){
+  const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : [];
+}
+
+// initialize empty arrays if not present
+let users = load(STORAGE_KEYS.users);
+let suppliers = load(STORAGE_KEYS.suppliers);
+let categories = load(STORAGE_KEYS.categories);
+let items = load(STORAGE_KEYS.items);
+let products = load(STORAGE_KEYS.products);
+let transactions = load(STORAGE_KEYS.transactions);
+let credits = load(STORAGE_KEYS.credits);
+
+// sample seed (only if empty)
+if(users.length===0){ users.push({id: 'U1', nama:'Andi', nik:'1234567890', photo:'', hp:'081234567890', alamat:'Jakarta'}); save(STORAGE_KEYS.users, users);} 
+if(suppliers.length===0){ suppliers.push({id:'S1', nama:'PT. Supplier', hp:'082112345678', keterangan:'Main supplier'}); save(STORAGE_KEYS.suppliers, suppliers);} 
+if(categories.length===0){ categories.push({id:'C1', nama:'Elektronik'}); save(STORAGE_KEYS.categories, categories);} 
+if(items.length===0){ items.push({id:'I1', nama:'Handphone'}); save(STORAGE_KEYS.items, items);} 
+if(products.length===0){ products.push({id:'P1', nama:'XPhone X', supplierId:'S1', categoryId:'C1', itemId:'I1', stok:10, harga:3500000}); save(STORAGE_KEYS.products, products);} 
+
+// ---------- Helpers ----------
+function uid(prefix){ return prefix + Math.floor(Math.random()*9000+1000); }
+function formatRp(n){ return 'Rp ' + Number(n).toLocaleString('id-ID'); }
+function showMsg(msg, type='success'){ alert(msg); }
+
+// ---------- UI rendering for each tab ----------
+function showTab(tab){
+  const area = document.getElementById('mainArea');
+  if(tab==='users') area.innerHTML = renderUsers();
+  if(tab==='suppliers') area.innerHTML = renderSuppliers();
+  if(tab==='categories') area.innerHTML = renderCategories();
+  if(tab==='items') area.innerHTML = renderItems();
+  if(tab==='products') area.innerHTML = renderProducts();
+  if(tab==='transactions') area.innerHTML = renderTransactions();
+  if(tab==='credits') area.innerHTML = renderCredits();
+}
+
+// ---------- USERS CRUD ----------
+function renderUsers(){
+  return `
+  <div class="card">
+    <div class="card-body">
+      <h5>Users <button class="btn btn-sm btn-primary float-end" onclick="showUserForm()">Tambah User</button></h5>
+      <table class="table table-sm">
+        <thead><tr><th>ID</th><th>Nama</th><th>NIK</th><th>HP</th><th>Alamat</th><th>Aksi</th></tr></thead>
+        <tbody>${users.map(u=>`<tr><td>${u.id}</td><td>${u.nama}</td><td>${u.nik}</td><td>${u.hp}</td><td>${u.alamat}</td><td><button class='btn btn-sm btn-outline-secondary' onclick="editUser('${u.id}')">Edit</button> <button class='btn btn-sm btn-danger' onclick="deleteUser('${u.id}')">Hapus</button></td></tr>`).join('')}</tbody>
+      </table>
+    </div>
+  </div>
+  <div id='modalArea'></div>
+  `;
+}
+function showUserForm(edit=null){
+  const existing = edit ? users.find(x=>x.id===edit) : {id:uid('U'),nama:'',nik:'',photo:'',hp:'',alamat:''};
+  document.getElementById('modalArea').innerHTML = `
+    <div class='card mt-3 p-3'>
+      <h6>${edit? 'Edit' : 'Tambah'} User</h6>
+      <div class='mb-2'><label>Nama</label><input id='u_nama' class='form-control' value='${existing.nama}'></div>
+      <div class='mb-2'><label>NIK</label><input id='u_nik' class='form-control' value='${existing.nik}'></div>
+      <div class='mb-2'><label>HP</label><input id='u_hp' class='form-control' value='${existing.hp}'></div>
+      <div class='mb-2'><label>Alamat</label><input id='u_alamat' class='form-control' value='${existing.alamat}'></div>
+      <button class='btn btn-sm btn-success' onclick="saveUser('${existing.id}')">Simpan</button>
+      <button class='btn btn-sm btn-secondary' onclick="document.getElementById('modalArea').innerHTML=''">Batal</button>
+    </div>
+  `;
+}
+function saveUser(id){
+  const nama = document.getElementById('u_nama').value.trim();
+  const nik = document.getElementById('u_nik').value.trim();
+  const hp = document.getElementById('u_hp').value.trim();
+  const alamat = document.getElementById('u_alamat').value.trim();
+  if(!nama || !nik) return showMsg('Nama dan NIK wajib diisi','error');
+  const idx = users.findIndex(x=>x.id===id);
+  if(idx>=0){ users[idx] = {id,nama,nik,photo:'',hp,alamat}; }
+  else{ users.push({id,nama,nik,photo:'',hp,alamat}); }
+  save(STORAGE_KEYS.users, users);
+  document.getElementById('modalArea').innerHTML='';
+  showTab('users');
+}
+function editUser(id){ showUserForm(id); }
+function deleteUser(id){ if(confirm('Hapus user '+id+'?')){ users = users.filter(u=>u.id!==id); save(STORAGE_KEYS.users, users); showTab('users'); } }
+
+// ---------- SUPPLIERS CRUD ----------
+function renderSuppliers(){
+  return `
+    <div class='card'>
+      <div class='card-body'>
+        <h5>Suppliers <button class='btn btn-sm btn-primary float-end' onclick="showSupplierForm()">Tambah</button></h5>
+        <table class='table table-sm'><thead><tr><th>ID</th><th>Nama Perusahaan</th><th>HP</th><th>Keterangan</th><th>Aksi</th></tr></thead>
+        <tbody>${suppliers.map(s=>`<tr><td>${s.id}</td><td>${s.nama}</td><td>${s.hp}</td><td>${s.keterangan||''}</td><td><button class='btn btn-sm btn-outline-secondary' onclick="editSupplier('${s.id}')">Edit</button> <button class='btn btn-sm btn-danger' onclick="deleteSupplier('${s.id}')">Hapus</button></td></tr>`).join('')}</tbody></table>
+      </div>
+    </div>
+    <div id='modalArea'></div>
+  `;
+}
+function showSupplierForm(edit=null){ const ex = edit ? suppliers.find(x=>x.id===edit) : {id:uid('S'),nama:'',hp:'',keterangan:''};
+  document.getElementById('modalArea').innerHTML = `
+    <div class='card mt-3 p-3'>
+      <h6>${edit? 'Edit' : 'Tambah'} Supplier</h6>
+      <div class='mb-2'><label>Nama Perusahaan</label><input id='s_nama' class='form-control' value='${ex.nama}'></div>
+      <div class='mb-2'><label>HP</label><input id='s_hp' class='form-control' value='${ex.hp}'></div>
+      <div class='mb-2'><label>Keterangan</label><input id='s_ket' class='form-control' value='${ex.keterangan}'></div>
+      <button class='btn btn-sm btn-success' onclick="saveSupplier('${ex.id}')">Simpan</button>
+      <button class='btn btn-sm btn-secondary' onclick="document.getElementById('modalArea').innerHTML=''">Batal</button>
+    </div>`;
+}
+function saveSupplier(id){ const nama=document.getElementById('s_nama').value.trim(); const hp=document.getElementById('s_hp').value.trim(); const k=document.getElementById('s_ket').value.trim(); if(!nama) return showMsg('Nama perusahaan wajib'); const idx=suppliers.findIndex(x=>x.id===id); if(idx>=0) suppliers[idx]={id,nama,hp,keterangan:k}; else suppliers.push({id,nama,hp,keterangan:k}); save(STORAGE_KEYS.suppliers,suppliers); document.getElementById('modalArea').innerHTML=''; showTab('suppliers'); }
+function editSupplier(id){ showSupplierForm(id); }
+function deleteSupplier(id){ if(confirm('Hapus supplier '+id+'?')){ suppliers=suppliers.filter(s=>s.id!==id); save(STORAGE_KEYS.suppliers,suppliers); showTab('suppliers'); }}
+
+// ---------- CATEGORIES CRUD ----------
+function renderCategories(){
+  return `
+    <div class='card'>
+      <div class='card-body'>
+        <h5>Kategori <button class='btn btn-sm btn-primary float-end' onclick="showCategoryForm()">Tambah</button></h5>
+        <table class='table table-sm'><thead><tr><th>ID</th><th>Nama</th><th>Aksi</th></tr></thead>
+        <tbody>${categories.map(c=>`<tr><td>${c.id}</td><td>${c.nama}</td><td><button class='btn btn-sm btn-outline-secondary' onclick="editCategory('${c.id}')">Edit</button> <button class='btn btn-sm btn-danger' onclick="deleteCategory('${c.id}')">Hapus</button></td></tr>`).join('')}</tbody></table>
+      </div>
+    </div>
+    <div id='modalArea'></div>
+  `;
+}
+function showCategoryForm(edit=null){ const ex = edit ? categories.find(x=>x.id===edit) : {id:uid('C'),nama:''}; document.getElementById('modalArea').innerHTML = `
+  <div class='card mt-3 p-3'>
+    <h6>${edit? 'Edit' : 'Tambah'} Kategori</h6>
+    <div class='mb-2'><label>Nama</label><input id='c_nama' class='form-control' value='${ex.nama}'></div>
+    <button class='btn btn-sm btn-success' onclick="saveCategory('${ex.id}')">Simpan</button>
+    <button class='btn btn-sm btn-secondary' onclick="document.getElementById('modalArea').innerHTML=''">Batal</button>
+  </div>`; }
+function saveCategory(id){ const nama=document.getElementById('c_nama').value.trim(); if(!nama) return showMsg('Nama kategori wajib'); const idx=categories.findIndex(x=>x.id===id); if(idx>=0) categories[idx]={id,nama}; else categories.push({id,nama}); save(STORAGE_KEYS.categories,categories); document.getElementById('modalArea').innerHTML=''; showTab('categories'); }
+function editCategory(id){ showCategoryForm(id); }
+function deleteCategory(id){ if(confirm('Hapus kategori '+id+'?')){ categories=categories.filter(c=>c.id!==id); save(STORAGE_KEYS.categories,categories); showTab('categories'); }}
+
+// ---------- ITEMS CRUD ----------
+function renderItems(){
+  return `
+    <div class='card'>
+      <div class='card-body'>
+        <h5>Items <button class='btn btn-sm btn-primary float-end' onclick="showItemForm()">Tambah</button></h5>
+        <table class='table table-sm'><thead><tr><th>ID</th><th>Nama</th><th>Aksi</th></tr></thead>
+        <tbody>${items.map(i=>`<tr><td>${i.id}</td><td>${i.nama}</td><td><button class='btn btn-sm btn-outline-secondary' onclick="editItem('${i.id}')">Edit</button> <button class='btn btn-sm btn-danger' onclick="deleteItem('${i.id}')">Hapus</button></td></tr>`).join('')}</tbody></table>
+      </div>
+    </div>
+    <div id='modalArea'></div>
+  `;
+}
+function showItemForm(edit=null){ const ex = edit ? items.find(x=>x.id===edit) : {id:uid('I'),nama:''}; document.getElementById('modalArea').innerHTML = `
+  <div class='card mt-3 p-3'>
+    <h6>${edit? 'Edit' : 'Tambah'} Item</h6>
+    <div class='mb-2'><label>Nama</label><input id='i_nama' class='form-control' value='${ex.nama}'></div>
+    <button class='btn btn-sm btn-success' onclick="saveItem('${ex.id}')">Simpan</button>
+    <button class='btn btn-sm btn-secondary' onclick="document.getElementById('modalArea').innerHTML=''">Batal</button>
+  </div>`; }
+function saveItem(id){ const nama=document.getElementById('i_nama').value.trim(); if(!nama) return showMsg('Nama item wajib'); const idx=items.findIndex(x=>x.id===id); if(idx>=0) items[idx]={id,nama}; else items.push({id,nama}); save(STORAGE_KEYS.items,items); document.getElementById('modalArea').innerHTML=''; showTab('items'); }
+function editItem(id){ showItemForm(id); }
+function deleteItem(id){ if(confirm('Hapus item '+id+'?')){ items=items.filter(i=>i.id!==id); save(STORAGE_KEYS.items,items); showTab('items'); }}
+
+// ---------- PRODUCTS CRUD ----------
+function renderProducts(){
+  return `
+    <div class='card'>
+      <div class='card-body'>
+        <h5>Products <button class='btn btn-sm btn-primary float-end' onclick="showProductForm()">Tambah Produk</button></h5>
+        <table class='table table-sm'><thead><tr><th>ID</th><th>Nama Produk</th><th>Supplier</th><th>Kategori</th><th>Item</th><th>Stok</th><th>Harga</th><th>Aksi</th></tr></thead>
+        <tbody>${products.map(p=>`<tr><td>${p.id}</td><td>${p.nama}</td><td>${(suppliers.find(s=>s.id===p.supplierId)||{}).nama||''}</td><td>${(categories.find(c=>c.id===p.categoryId)||{}).nama||''}</td><td>${(items.find(i=>i.id===p.itemId)||{}).nama||''}</td><td>${p.stok}</td><td>${formatRp(p.harga)}</td><td><button class='btn btn-sm btn-outline-secondary' onclick="editProduct('${p.id}')">Edit</button> <button class='btn btn-sm btn-danger' onclick="deleteProduct('${p.id}')">Hapus</button></td></tr>`).join('')}</tbody></table>
+      </div>
+    </div>
+    <div id='modalArea'></div>
+  `;
+}
+function showProductForm(edit=null){ const ex = edit ? products.find(x=>x.id===edit) : {id:uid('P'),nama:'',supplierId:'',categoryId:'',itemId:'',stok:0,harga:0};
+  const supOptions = suppliers.map(s=>`<option value='${s.id}' ${s.id===ex.supplierId?'selected':''}>${s.nama}</option>`).join('');
+  const catOptions = categories.map(c=>`<option value='${c.id}' ${c.id===ex.categoryId?'selected':''}>${c.nama}</option>`).join('');
+  const itemOptions = items.map(i=>`<option value='${i.id}' ${i.id===ex.itemId?'selected':''}>${i.nama}</option>`).join('');
+  document.getElementById('modalArea').innerHTML = `
+    <div class='card mt-3 p-3'>
+      <h6>${edit? 'Edit' : 'Tambah'} Produk</h6>
+      <div class='mb-2'><label>Nama Produk</label><input id='p_nama' class='form-control' value='${ex.nama}'></div>
+      <div class='mb-2'><label>Supplier</label><select id='p_supplier' class='form-control'><option value=''>-- pilih --</option>${supOptions}</select></div>
+      <div class='mb-2'><label>Kategori</label><select id='p_cat' class='form-control'><option value=''>-- pilih --</option>${catOptions}</select></div>
+      <div class='mb-2'><label>Item</label><select id='p_item' class='form-control'><option value=''>-- pilih --</option>${itemOptions}</select></div>
+      <div class='mb-2'><label>Stok</label><input id='p_stok' type='number' min='0' class='form-control' value='${ex.stok}'></div>
+      <div class='mb-2'><label>Harga (angka)</label><input id='p_harga' type='number' min='0' class='form-control' value='${ex.harga}'></div>
+      <button class='btn btn-sm btn-success' onclick="saveProduct('${ex.id}')">Simpan</button>
+      <button class='btn btn-sm btn-secondary' onclick="document.getElementById('modalArea').innerHTML=''">Batal</button>
+    </div>
+  `;
+}
+function saveProduct(id){ const nama=document.getElementById('p_nama').value.trim(); const supplierId=document.getElementById('p_supplier').value; const categoryId=document.getElementById('p_cat').value; const itemId=document.getElementById('p_item').value; const stok=parseInt(document.getElementById('p_stok').value||0); const harga=parseFloat(document.getElementById('p_harga').value||0);
+  if(!nama || !supplierId || !categoryId || !itemId) return showMsg('Lengkapi semua field produk');
+  const idx = products.findIndex(x=>x.id===id);
+  if(idx>=0) products[idx]={id,nama,supplierId,categoryId,itemId,stok,harga}; else products.push({id,nama,supplierId,categoryId,itemId,stok,harga});
+  save(STORAGE_KEYS.products,products); document.getElementById('modalArea').innerHTML=''; showTab('products'); }
+function editProduct(id){ showProductForm(id); }
+function deleteProduct(id){ if(confirm('Hapus produk '+id+'?')){ products=products.filter(p=>p.id!==id); save(STORAGE_KEYS.products,products); showTab('products'); }}
+
+// ---------- TRANSACTIONS ----------
+function renderTransactions(){
+  return `
+    <div class='card'>
+      <div class='card-body'>
+        <h5>Transaksi <button class='btn btn-sm btn-success float-end' onclick="startTransaction()">Buat Transaksi Baru</button></h5>
+        <table class='table table-sm'><thead><tr><th>ID</th><th>Nama Pelanggan</th><th>Total</th><th>Metode</th><th>Status</th><th>Aksi</th></tr></thead>
+        <tbody>${transactions.map(t=>`<tr><td>${t.id}</td><td>${t.nama_pelanggan}</td><td>${formatRp(t.total)}</td><td>${t.metode}</td><td>${t.status}</td><td><button class='btn btn-sm btn-outline-secondary' onclick="viewTransaction('${t.id}')">Detail</button></td></tr>`).join('')}</tbody></table>
+      </div>
+    </div>
+    <div id='modalArea'></div>
+  `;
+}
+
+function startTransaction(){
+  const newId = uid('T');
+  document.getElementById('modalArea').innerHTML = getTransactionForm(newId);
+}
+
+function getTransactionForm(trId){
+  const userOptions = users.map(u=>`<option value='${u.id}'>${u.nama} (${u.id})</option>`).join('');
+  const productRows = products.map(p=>`<tr data-pid='${p.id}'><td>${p.nama}</td><td>${p.stok}</td><td>${formatRp(p.harga)}</td><td><input type='number' class='form-control qty' min='0' value='0' style='width:120px'></td><td class='lineTotal'>Rp 0</td></tr>`).join('');
+  return `
+  <div class='card mt-3 p-3'>
+    <h6>Buat Transaksi (${trId})</h6>
+    <div class='mb-2'>
+      <label>Opsi Pelanggan</label>
+      <select id='trx_customer_mode' class='form-control' onchange='onCustomerModeChange()'>
+        <option value='member'>Member</option>
+        <option value='umum'>Umum</option>
+      </select>
+    </div>
+    <div id='customerArea' class='mb-2'>
+      <label>Pilih Member</label>
+      <select id='trx_member_select' class='form-control'><option value=''>-- pilih member --</option>${userOptions}</select>
+    </div>
+    <div id='customerUmum' style='display:none'>
+      <div class='mb-2'><label>Nama Pelanggan (umum)</label><input id='trx_umum_nama' class='form-control'></div>
+      <div class='mb-2'><label>HP</label><input id='trx_umum_hp' class='form-control'></div>
+    </div>
+
+    <h6 class='mt-3'>Pilih Produk</h6>
+    <table class='table table-sm'>
+      <thead><tr><th>Nama</th><th>Stok</th><th>Harga</th><th>Qty</th><th>Subtotal</th></tr></thead>
+      <tbody id='trx_product_list'>${productRows}</tbody>
+    </table>
+
+    <div class='row'>
+      <div class='col-md-4'>
+        <label>Diskon</label>
+        <div class='input-group'>
+          <select id='trx_discount_type' class='form-control' style='width:120px'><option value='off'>Off</option><option value='percent'>%</option><option value='rp'>Rp</option></select>
+          <input id='trx_discount_value' class='form-control' value='0'>
+        </div>
+      </div>
+      <div class='col-md-4'>
+        <label>Uang Muka (angka)</label>
+        <input id='trx_dp' class='form-control' value='0'>
+      </div>
+      <div class='col-md-4'>
+        <label>Metode Pembayaran</label>
+        <select id='trx_metode' class='form-control' onchange='onMetodeChange()'><option value='cash'>Cash</option><option value='tf'>Transfer</option><option value='kredit'>Kredit</option></select>
+      </div>
+    </div>
+
+    <div id='metode_extra' class='mt-3'></div>
+
+    <div class='mt-3'>
+      <button class='btn btn-success' onclick="processTransaction('${trId}')">Proses & Simpan</button>
+      <button class='btn btn-secondary' onclick="document.getElementById('modalArea').innerHTML=''">Batal</button>
+    </div>
+  </div>
+  `;
+}
+
+function onCustomerModeChange(){ const val = document.getElementById('trx_customer_mode').value; document.getElementById('customerArea').style.display = val==='member'?'block':'none'; document.getElementById('customerUmum').style.display = val==='umum'?'block':'none'; }
+
+function onMetodeChange(){ const m = document.getElementById('trx_metode').value; const area = document.getElementById('metode_extra'); area.innerHTML=''; if(m==='tf') area.innerHTML = `<div class='mb-2'><label>Bukti TF (simulasi: ketik nomor bukti)</label><input id='tf_bukti' class='form-control'></div>`; if(m==='kredit') area.innerHTML = `<div class='mb-2'><label>Tenor</label><select id='k_tenor' class='form-control'><option value='1'>1 bulan</option><option value='3'>3 bulan</option><option value='6'>6 bulan</option><option value='9'>9 bulan</option><option value='12'>12 bulan</option></select></div>`; }
+
+// compute line totals when qty changes
+setInterval(()=>{
+  const list = document.querySelectorAll('#trx_product_list tr');
+  list.forEach(row=>{
+    const pid = row.getAttribute('data-pid');
+    const qty = Number(row.querySelector('.qty').value || 0);
+    const prod = products.find(p=>p.id===pid);
+    let subtotal = qty * (prod?prod.harga:0);
+    row.querySelector('.lineTotal').innerText = subtotal ? formatRp(subtotal) : 'Rp 0';
+  });
+},400);
+
+function processTransaction(trId){
+  // get customer
+  const mode = document.getElementById('trx_customer_mode').value;
+  let nama_pelanggan=''; let id_pelanggan='';
+  if(mode==='member'){ id_pelanggan = document.getElementById('trx_member_select').value; if(!id_pelanggan) return showMsg('Pilih member atau ubah ke Umum'); const u = users.find(x=>x.id===id_pelanggan); nama_pelanggan = u?u.nama:''; }
+  else { nama_pelanggan = document.getElementById('trx_umum_nama').value.trim(); if(!nama_pelanggan) return showMsg('Isi nama pelanggan umum'); id_pelanggan = uid('G'); }
+
+  // collect cart
+  const rows = document.querySelectorAll('#trx_product_list tr');
+  const list = [];
+  rows.forEach(r=>{
+    const pid = r.getAttribute('data-pid'); const qty = Number(r.querySelector('.qty').value || 0);
+    if(qty>0){ const prod = products.find(p=>p.id===pid); if(!prod) return; if(qty>prod.stok) return showMsg('Qty melebihi stok untuk '+prod.nama); list.push({productId:pid, nama:prod.nama, harga:prod.harga, qty, stokBefore:prod.stok}); }
+  });
+  if(list.length===0) return showMsg('Pilih minimal 1 produk');
+
+  // compute totals
+  let subtotal = list.reduce((s,it)=>s + it.harga*it.qty,0);
+  const dType = document.getElementById('trx_discount_type').value; const dVal = Number(document.getElementById('trx_discount_value').value || 0);
+  let diskon = 0;
+  if(dType==='percent') diskon = subtotal * (dVal/100);
+  if(dType==='rp') diskon = dVal;
+  // ensure diskon not exceed subtotal
+  if(diskon > subtotal) diskon = subtotal;
+  const totalBefore = subtotal - diskon;
+  const dp = Number(document.getElementById('trx_dp').value || 0);
+  if(dp > totalBefore) return showMsg('Uang muka tidak boleh lebih besar dari total');
+  const metode = document.getElementById('trx_metode').value;
+
+  // payment logic
+  let status = 'Belum Lunas';
+  let note = '';
+
+  if(metode==='cash'){
+    // if dp == totalBefore => lunas, else if dp < totalBefore => redirect to kredit per user request
+    if(dp >= totalBefore){ status='Lunas'; }
+    else { // re-route to kredit automatically per requirement
+      return showMsg('Pembayaran cash kurang — akan dialihkan ke proses kredit. Pilih metode Kredit.');
+    }
+  }
+  if(metode==='tf'){
+    const bukti = document.getElementById('tf_bukti').value.trim(); if(!bukti) return showMsg('Masukkan nomor/ bukti TF (simulasi)'); note = 'Bukti TF: '+bukti + ' (menunggu konfirmasi)'; status='Menunggu Konfirmasi TF';
+  }
+  if(metode==='kredit'){
+    const tenor = Number(document.getElementById('k_tenor').value);
+    // admin fee 15% from produk yang dibeli
+    const adminFee = totalBefore * CONFIG.adminPercent;
+    const loanPrincipal = (totalBefore - dp) + adminFee; // principal to credit
+    const r = CONFIG.interestMonthly; const n = tenor;
+    // monthly payment (annuity)
+    const monthly = (r===0) ? (loanPrincipal / n) : (loanPrincipal * r / (1 - Math.pow(1 + r, -n)));
+
+    // create credit schedule
+    const schedule = [];
+    let remaining = loanPrincipal;
+    for(let i=1;i<=n;i++){
+      const interest = remaining * r;
+      const principalPaid = monthly - interest;
+      remaining = Math.max(0, remaining - principalPaid);
+      schedule.push({cicilan_ke:i, bayar: Number(monthly.toFixed(2)), bunga: Number(interest.toFixed(2)), pokok: Number(principalPaid.toFixed(2)), sisa: Number(remaining.toFixed(2)), status:'Belum Dibayar', jatuh_tempo: new Date(Date.now() + i*30*24*3600*1000).toISOString().slice(0,10)});
+    }
+    // save credit record
+    const creditId = uid('CR');
+    credits.push({id:creditId, transaksiId:trId, nama_pelanggan, id_pelanggan, list, subtotal, diskon, totalBefore, dp, adminFee, loanPrincipal: Number(loanPrincipal.toFixed(2)), tenor:n, monthly: Number(monthly.toFixed(2)), schedule, status:'Aktif'});
+    save(STORAGE_KEYS.credits, credits);
+    status = 'Kredit - Aktif'; note = 'Credit ID: '+creditId;
+  }
+
+  // finalize transaction object
+  const trx = {id:trId, nama_pelanggan, id_pelanggan, list, subtotal, diskon, total: Number((subtotal-diskon).toFixed(2)), dp, metode, status, note, created_at:new Date().toISOString() };
+  // reduce stok if paid or credit (we still reduce stok)
+  trx.list.forEach(it=>{ const prod = products.find(p=>p.id===it.productId); if(prod){ prod.stok = prod.stok - it.qty; if(prod.stok < 0) prod.stok = 0; }});
+  save(STORAGE_KEYS.products, products);
+  transactions.push(trx); save(STORAGE_KEYS.transactions, transactions);
+
+  document.getElementById('modalArea').innerHTML='';
+  showTab('transactions');
+  if(metode==='kredit') showMsg('Transaksi disimpan dan kredit dibuat. ID kredit: '+credits[credits.length-1].id);
+}
+
+function viewTransaction(id){ const t = transactions.find(x=>x.id===id); if(!t) return showMsg('Transaksi tidak ditemukan');
+  document.getElementById('modalArea').innerHTML = `<div class='card mt-3 p-3'><h6>Detail Transaksi ${t.id}</h6>
+  <div><strong>Pelanggan:</strong> ${t.nama_pelanggan}</div>
+  <div><strong>Total:</strong> ${formatRp(t.total)}</div>
+  <div><strong>Metode:</strong> ${t.metode} - ${t.status}</div>
+  <div class='mt-2'><h6>Daftar Produk</h6><ul>${t.list.map(l=>`<li>${l.nama} x ${l.qty} = ${formatRp(l.harga*l.qty)}</li>`).join('')}</ul></div>
+  <button class='btn btn-sm btn-secondary' onclick="document.getElementById('modalArea').innerHTML=''">Tutup</button>
+  </div>`;
+}
+
+// ---------- CREDITS LIST & PAY INSTALLMENT ----------
+function renderCredits(){
+  return `
+  <div class='card'>
+    <div class='card-body'>
+      <h5>Daftar Kredit <button class='btn btn-sm btn-primary float-end' onclick="recomputeConfig()">Refresh Config</button></h5>
+      <table class='table table-sm'><thead><tr><th>ID Kredit</th><th>Transaksi</th><th>Pelanggan</th><th>Tenor</th><th>Monthly</th><th>Status</th><th>Aksi</th></tr></thead>
+      <tbody>${credits.map(c=>`<tr><td>${c.id}</td><td>${c.transaksiId}</td><td>${c.nama_pelanggan}</td><td>${c.tenor} bulan</td><td>${formatRp(c.monthly)}</td><td>${c.status}</td><td><button class='btn btn-sm btn-outline-secondary' onclick="viewCredit('${c.id}')">Detail</button> <button class='btn btn-sm btn-success' onclick="payInstallmentPrompt('${c.id}')">Bayar Cicilan</button></td></tr>`).join('')}</tbody></table>
+    </div>
+  </div>
+  <div id='modalArea'></div>
+  `;
+}
+
+function viewCredit(id){ const c = credits.find(x=>x.id===id); if(!c) return showMsg('Credit not found'); document.getElementById('modalArea').innerHTML = `<div class='card mt-3 p-3'><h6>Detail Kredit ${c.id}</h6>
+  <div><strong>Transaksi:</strong> ${c.transaksiId}</div><div><strong>Pelanggan:</strong> ${c.nama_pelanggan}</div><div><strong>Total Pinjaman:</strong> ${formatRp(c.loanPrincipal)}</div>
+  <div class='mt-2'><h6>Jadwal Pembayaran</h6><table class='table table-sm'><thead><tr><th>Ke</th><th>Jatuh Tempo</th><th>Bayar</th><th>Bunga</th><th>Pokok</th><th>Sisa</th><th>Status</th></tr></thead><tbody>${c.schedule.map(s=>`<tr><td>${s.cicilan_ke}</td><td>${s.jatuh_tempo}</td><td>${formatRp(s.bayar)}</td><td>${formatRp(s.bunga)}</td><td>${formatRp(s.pokok)}</td><td>${formatRp(s.sisa)}</td><td>${s.status}</td></tr>`).join('')}</tbody></table></div>
+  <button class='btn btn-sm btn-secondary' onclick="document.getElementById('modalArea').innerHTML=''">Tutup</button>
+  </div>`; }
+
+function payInstallmentPrompt(creditId){ const c = credits.find(x=>x.id===creditId); if(!c) return showMsg('Credit not found'); const unpaid = c.schedule.find(s=>s.status==='Belum Dibayar'); if(!unpaid) return showMsg('Semua cicilan sudah lunas'); const amt = unpaid.bayar; if(confirm('Bayar cicilan ke-'+unpaid.cicilan_ke+' sebesar '+formatRp(amt)+'?')){ // mark paid
+    unpaid.status='Dibayar'; save(STORAGE_KEYS.credits, credits); showTab('credits'); showMsg('Pembayaran tersimpan'); }
+}
+
+// ---------- Utilities ----------
+function recomputeConfig(){ document.getElementById('cfgInterest').innerText = (CONFIG.interestMonthly*100).toFixed(2)+'%'; document.getElementById('cfgAdmin').innerText = (CONFIG.adminPercent*100).toFixed(0)+'%'; }
+recomputeConfig();
+
+function resetDemo(){ if(confirm('Hapus semua data demo dari localStorage?')){ Object.values(STORAGE_KEYS).forEach(k=>localStorage.removeItem(k)); location.reload(); }}
+
+// expose showTab on load
+showTab('users');
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Laporan & Chart Section (Enhanced) -->
+  <section id="reportSection" class="container mt-5">
+    <h2>Laporan Transaksi</h2>
+    <div>
+      <canvas id="salesChart"></canvas>
+    </div>
+    <table id="reportTable" class="table table-bordered mt-3">
+      <thead>
+        <tr>
+          <th>ID Transaksi</th>
+          <th>Pelanggan</th>
+          <th>Total</th>
+          <th>Metode</th>
+          <th>Tanggal</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+<!-- Filter, Export, Pie Chart, Kredit Report -->
+<section id="reportAdvanced" class="container mt-5">
+  <h2>Fitur Laporan Lanjutan</h2>
+
+  <!-- Filter -->
+  <div class="card p-3 mb-3">
+    <h5>Filter Laporan</h5>
+    <div class="row g-2">
+      <div class="col-md-3">
+        <input type="date" id="filterStart" class="form-control" />
+      </div>
+      <div class="col-md-3">
+        <input type="date" id="filterEnd" class="form-control" />
+      </div>
+      <div class="col-md-3">
+        <select id="filterPayment" class="form-control">
+          <option value="">Semua Metode</option>
+          <option value="cash">Cash</option>
+          <option value="transfer">Transfer</option>
+          <option value="kredit">Kredit</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-primary w-100" onclick="applyFilter()">Filter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export -->
+  <div class="mb-3">
+    <button class="btn btn-success" onclick="exportCSV()">Export CSV</button>
+    <button class="btn btn-secondary" onclick="window.print()">Print</button>
+  </div>
+
+  <!-- Pie Chart -->
+  <div class="mt-4">
+    <canvas id="paymentChart"></canvas>
+  </div>
+
+  <!-- Kredit Report -->
+  <h3 class="mt-5">Laporan Kredit</h3>
+  <table id="creditReportTable" class="table table-bordered">
+    <thead>
+      <tr>
+        <th>ID Kredit</th>
+        <th>Pelanggan</th>
+        <th>Total</th>
+        <th>Tenor</th>
+        <th>Bunga</th>
+        <th>Sisa Cicilan</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<script>
+  // FILTER FUNCTION
+  function applyFilter() {
+    const start = document.getElementById('filterStart').value;
+    const end = document.getElementById('filterEnd').value;
+    const method = document.getElementById('filterPayment').value;
+    const data = JSON.parse(localStorage.getItem('transactions') || '[]');
+    const tbody = document.querySelector('#reportTable tbody');
+    tbody.innerHTML = '';
+
+    data.filter(tr => {
+      const date = tr.date.split(' ')[0];
+      if (start && date < start) return false;
+      if (end && date > end) return false;
+      if (method && tr.paymentMethod !== method) return false;
+      return true;
+    }).forEach(tr => {
+      tbody.innerHTML += `<tr>
+        <td>${tr.id}</td>
+        <td>${tr.customerName}</td>
+        <td>${tr.total}</td>
+        <td>${tr.paymentMethod}</td>
+        <td>${tr.date}</td>
+      </tr>`;
+    });
+  }
+
+  // EXPORT CSV
+  function exportCSV() {
+    const data = JSON.parse(localStorage.getItem('transactions') || '[]');
+    let csv = 'ID,Customer,Total,Method,Date
+';
+    data.forEach(tr => {
+      csv += `${tr.id},${tr.customerName},${tr.total},${tr.paymentMethod},${tr.date}
+`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'laporan_transaksi.csv';
+    a.click();
+  }
+
+  // PIE CHART (Payment Distribution)
+  function loadPaymentChart() {
+    const ctx = document.getElementById('paymentChart');
+    const data = JSON.parse(localStorage.getItem('transactions') || '[]');
+    const count = { cash: 0, transfer: 0, kredit: 0 };
+
+    data.forEach(tr => count[tr.paymentMethod]++);
+
+    new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: ['Cash', 'Transfer', 'Kredit'],
+        datasets: [{ data: [count.cash, count.transfer, count.kredit] }]
+      }
+    });
+  }
+
+  // CREDIT REPORT
+  function loadCreditReport() {
+    const data = JSON.parse(localStorage.getItem('credits') || '[]');
+    const tbody = document.querySelector('#creditReportTable tbody');
+    tbody.innerHTML = '';
+
+    data.forEach(cr => {
+      tbody.innerHTML += `<tr>
+        <td>${cr.id}</td>
+        <td>${cr.customer}</td>
+        <td>${cr.total}</td>
+        <td>${cr.tenor} bulan</td>
+        <td>${cr.interest}%</td>
+        <td>${cr.remaining}</td>
+      </tr>`;
+    });
+  }
+
+  // LOAD ALL
+  loadPaymentChart();
+  loadCreditReport();
+</script>
+</body>
+
+  <script>
+    // Generate Laporan Table
+    function loadReport() {
+      const data = JSON.parse(localStorage.getItem('transactions') || '[]');
+      const tbody = document.querySelector('#reportTable tbody');
+      tbody.innerHTML = '';
+      data.forEach(tr => {
+        const row = `<tr>
+          <td>${tr.id}</td>
+          <td>${tr.customerName}</td>
+          <td>${tr.total}</td>
+          <td>${tr.paymentMethod}</td>
+          <td>${tr.date}</td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+
+    // Generate Chart
+    function loadChart() {
+      const ctx = document.getElementById('salesChart');
+      const data = JSON.parse(localStorage.getItem('transactions') || '[]');
+      const monthly = {};
+
+      data.forEach(tr => {
+        const month = new Date(tr.date).toLocaleString('default', { month: 'short' });
+        monthly[month] = (monthly[month] || 0) + Number(tr.total);
+      });
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(monthly),
+          datasets: [{
+            label: 'Total Penjualan per Bulan',
+            data: Object.values(monthly)
+          }]
+        }
+      });
+    }
+
+    // Load on open
+    loadReport();
+    loadChart();
+  </script>
+</body>
+</html>
+
+## 11. Fitur Canggih (Advanced Features)
+
+### 11.1 Notifikasi Real-Time (WebSocket)
+- Sistem mengirimkan notifikasi otomatis untuk:
+  - Pembayaran cicilan jatuh tempo
+  - Stok produk menipis
+  - Transaksi baru diterima
+  - Pembayaran TF membutuhkan verifikasi
+
+### 11.2 Pengingat Jatuh Tempo via WhatsApp API
+- Ketika cicilan mendekati tanggal jatuh tempo, otomatis kirim pesan WA berisi:
+  - Total tagihan
+  - Link pembayaran
+  - Status cicilan terakhir
+
+### 11.3 AI Assistant (Analisis Penjualan Otomatis)
+- Menganalisis pola transaksi
+- Menampilkan rekomendasi:
+  - Produk paling laris
+  - Produk stok berlebih
+  - Prediksi penjualan bulan depan
+
+### 11.4 Dashboard KPI Canggih
+- Total Omset Harian / Bulanan
+- Total Transaksi per Metode Pembayaran
+- Total Piutang Kredit berjalan
+- Jumlah pelanggan aktif
+- Produk paling ramai dicari
+
+### 11.5 Grafik Stok Produk (Dynamic Stock Monitoring)
+- Chart menampilkan perubahan stok per minggu
+- Warna otomatis berubah ketika stok < 5
+
+### 11.6 Sistem Auto Limit Kredit Member
+- Member dapat memiliki batas kredit otomatis sesuai skor transaksi
+- Skor naik apabila:
+  - Cicilan tepat waktu
+  - Belanja sering
+- Skor turun jika terlambat bayar
+
+### 11.7 Smart Invoice Generator
+- Invoice otomatis dalam bentuk:
+  - PDF
+  - HTML
+  - Link share
+- Berisi QR Code untuk pembayaran TF
+
+### 11.8 OCR (Upload Bukti Pembayaran Otomatis Dibaca)
+- Sistem membaca angka di bukti transfer secara otomatis
+- Jika cocok, pembayaran diverifikasi otomatis
+
+### 11.9 Dark Mode + Auto Responsive
+- Mode gelap otomatis mengikuti sistem HP/laptop
+- Tampilan UI lebih modern dan smooth
+
+### 11.10 Backup Data Otomatis (Local → Cloud)
+- Backup otomatis per 24 jam ke JSON file
+- Bisa dipulihkan saat data hilang
+
