@@ -1,1 +1,16 @@
-<html><body><h1>Laporan</h1></body></html>
+<!-- laporan.html -->
+<!doctype html><html lang="id"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Laporan</title><link rel="stylesheet" href="css/style.css"></head>
+<body>
+<aside class="sidebar"><h2>SPelayanan</h2><nav><a href="index.html">Dashboard</a><a href="users.html">Users</a><a href="supplier.html">Supplier</a><a href="kategori.html">Kategori</a><a href="item.html">Item</a><a href="produk.html">Produk</a><a href="transaksi.html">Transaksi</a><a href="laporan.html">Laporan</a><a href="pengaturan.html">Pengaturan</a></nav></aside>
+
+<main class="main">
+  <header><h1>Laporan Transaksi</h1></header>
+  <div class="toolbar">
+    <button class="btn" id="refresh">Refresh</button>
+    <button class="btn secondary" id="exportCsv">Export CSV</button>
+  </div>
+  <table class="table" id="table"><thead><tr><th>ID</th><th>Tanggal</th><th>Buyer</th><th>Total</th></tr></thead><tbody></tbody></table>
+</main>
+
+<script src="js/storage.js"></script><script src="js/laporan.js"></script>
+</body></html>
