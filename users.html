@@ -1,18 +1,55 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manajemen User</title>
-<link rel="stylesheet" href="css/style.css">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Users - Sistem Pelayanan</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div class="container mt-4">
-<h1>Manajemen User</h1>
-<table class="table table-bordered" id="usersTable"></table>
-</div>
-<script src="js/users.js"></script>
+  <aside class="sidebar">
+    <h2>SPelayanan</h2>
+    <nav>
+      <a href="index.html">Dashboard</a><a href="users.html">Users</a><a href="supplier.html">Supplier</a>
+      <a href="kategori.html">Kategori</a><a href="item.html">Item</a><a href="produk.html">Produk</a>
+      <a href="transaksi.html">Transaksi</a><a href="laporan.html">Laporan</a><a href="pengaturan.html">Pengaturan</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header><h1>Manajemen Users</h1></header>
+
+    <div class="toolbar">
+      <button class="btn" id="openAdd">Tambah User</button>
+      <input id="search" class="input" placeholder="Cari nama / nik" />
+    </div>
+
+    <table class="table" id="tableUsers">
+      <thead><tr><th>NIK</th><th>Nama</th><th>No HP</th><th>Alamat</th><th>Aksi</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="footer small">Data tersimpan di localStorage (key: users)</div>
+  </main>
+
+  <!-- modal -->
+  <div id="modal" style="display:none" class="modal">
+    <div class="card" style="padding:16px">
+      <h3 id="mTitle">Tambah User</h3>
+      <div style="margin-top:8px" class="form">
+        <input id="u_nik" placeholder="NIK" class="input" />
+        <input id="u_nama" placeholder="Nama" class="input" />
+        <input id="u_hp" placeholder="No HP" class="input" />
+        <textarea id="u_alamat" placeholder="Alamat" class="input"></textarea>
+        <div style="margin-top:8px;text-align:right">
+          <button class="btn secondary" id="cancel">Batal</button>
+          <button class="btn" id="saveUser">Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/users.js"></script>
 </body>
 </html>
