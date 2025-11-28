@@ -1,1 +1,36 @@
-<html><body><h1>Transaksi</h1></body></html>
+<!-- transaksi.html -->
+<!doctype html><html lang="id"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Transaksi</title><link rel="stylesheet" href="css/style.css"></head>
+<body>
+<aside class="sidebar"><h2>SPelayanan</h2><nav><a href="index.html">Dashboard</a><a href="users.html">Users</a><a href="supplier.html">Supplier</a><a href="kategori.html">Kategori</a><a href="item.html">Item</a><a href="produk.html">Produk</a><a href="transaksi.html">Transaksi</a><a href="laporan.html">Laporan</a><a href="pengaturan.html">Pengaturan</a></nav></aside>
+
+<main class="main">
+  <header><h1>Transaksi POS</h1></header>
+  <div class="toolbar">
+    <select id="buyerMode" class="input"><option value="umum">Umum</option><option value="member">Member</option></select>
+    <select id="selectMember" class="input" style="display:none"></select>
+    <select id="selectProduk" class="input"></select>
+    <input id="qty" type="number" class="input" value="1" min="1" style="width:90px"/>
+    <button class="btn" id="addCart">Tambah ke Keranjang</button>
+    <button class="btn secondary" id="clearCart">Kosongkan</button>
+  </div>
+
+  <table class="table" id="cartTable"><thead><tr><th>Produk</th><th>Qty</th><th>Harga</th><th>Subtotal</th><th>Aksi</th></tr></thead><tbody></tbody></table>
+
+  <div style="margin-top:10px">
+    <strong>Total: Rp <span id="total">0</span></strong>
+    <div style="margin-top:8px">
+      <button class="btn" id="checkout">Checkout</button>
+    </div>
+  </div>
+</main>
+
+<div id="invoiceModal" style="display:none" class="modal">
+  <div class="card" style="padding:16px;max-width:700px">
+    <h3>Invoice</h3>
+    <div id="invoiceContent"></div>
+    <div style="text-align:right;margin-top:8px"><button class="btn secondary" id="closeInvoice">Tutup</button></div>
+  </div>
+</div>
+
+<script src="js/storage.js"></script><script src="js/transaksi.js"></script>
+</body></html>
